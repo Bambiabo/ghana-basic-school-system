@@ -1,21 +1,71 @@
-"use client";
-import Link from "next/link"; import { useState } from "react";
-export default function ScoresPage() { const [cat1, setCat1] = useState(""); const [cat2, setCat2] = useState(""); const [project, setProject] = useState(""); const [exam, setExam] = useState("");
-const total = (Number(cat1)  0) + (Number(cat2)  0) + (Number(project)  0) + (Number(exam)  0);
-let grade = "F"; if (total >= 80) grade = "A"; else if (total >= 70) grade = "B"; else if (total >= 60) grade = "C"; else if (total >= 50) grade = "D";
-return ( <div className="min-h-screen bg-gray-100 p-6"> <Link href="/dashboard" className="text-green-700 underline">← Back to Dashboard</Link>
-  <h1 className="text-2xl font-bold mt-4 mb-6">Enter Scores</h1>
+import Link from "next/link";
+export default function StudentsPage() { return ( <div className="min-h-screen bg-gray-100"> {/* Header */} <header className="bg-green-800 text-white px-6 py-4 flex justify-between items-center"> <div> <h1 className="font-bold text-lg">Ghana Basic School</h1> <p className="text-sm text-green-200">Students</p> </div> <Link href="/dashboard" className="text-sm hover:underline"> ← Back to Dashboard </Link> </header>
+  {/* Main Content */}
+  <main className="p-6 max-w-6xl mx-auto">
+    <div className="flex justify-between items-center mb-6">
+      <h2 className="text-2xl font-bold text-gray-800">All Students</h2>
+      <button className="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-lg font-medium">
+        + Add Student
+      </button>
+    </div>
 
-  <div className="bg-white p-6 rounded-lg shadow max-w-md">
-    <p className="font-medium mb-3">Ama Serwaa Mensah</p>
-    
-    <input type="number" placeholder="CAT 1" value={cat1} onChange={(e) => setCat1(e.target.value)} className="border p-2 mr-2 mb-2 w-20" />
-    <input type="number" placeholder="CAT 2" value={cat2} onChange={(e) => setCat2(e.target.value)} className="border p-2 mr-2 mb-2 w-20" />
-    <input type="number" placeholder="Project" value={project} onChange={(e) => setProject(e.target.value)} className="border p-2 mr-2 mb-2 w-20" />
-    <input type="number" placeholder="Exam" value={exam} onChange={(e) => setExam(e.target.value)} className="border p-2 mr-2 mb-2 w-20" />
-    
-    <p className="mt-4 text-lg font-bold">Total: {total}</p>
-    <p className="text-lg font-bold">Grade: {grade}</p>
-  </div>
+    {/* Students Table */}
+    <div className="bg-white rounded-xl shadow overflow-hidden">
+      <table className="w-full text-left">
+        <thead className="bg-gray-50 text-gray-600 text-sm">
+          <tr>
+            <th className="px-6 py-3">#</th>
+            <th className="px-6 py-3">Full Name</th>
+            <th className="px-6 py-3">Admission No.</th>
+            <th className="px-6 py-3">Class</th>
+            <th className="px-6 py-3">Gender</th>
+            <th className="px-6 py-3">Action</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          <tr className="hover:bg-gray-50">
+            <td className="px-6 py-4">1</td>
+            <td className="px-6 py-4 font-medium">Ama Serwaa Mensah</td>
+            <td className="px-6 py-4">GES/2023/0145</td>
+            <td className="px-6 py-4">JHS 2</td>
+            <td className="px-6 py-4">Female</td>
+            <td className="px-6 py-4">
+              <button className="text-green-700 hover:underline text-sm">View</button>
+            </td>
+          </tr>
+          <tr className="hover:bg-gray-50">
+            <td className="px-6 py-4">2</td>
+            <td className="px-6 py-4 font-medium">Cletus Bambiabo</td>
+            <td className="px-6 py-4">GES/2023/0146</td>
+            <td className="px-6 py-4">JHS 2</td>
+            <td className="px-6 py-4">Male</td>
+            <td className="px-6 py-4">
+              <button className="text-green-700 hover:underline text-sm">View</button>
+            </td>
+          </tr>
+          <tr className="hover:bg-gray-50">
+            <td className="px-6 py-4">3</td>
+            <td className="px-6 py-4 font-medium">Abena Osei</td>
+            <td className="px-6 py-4">GES/2023/0147</td>
+            <td className="px-6 py-4">Basic 6</td>
+            <td className="px-6 py-4">Female</td>
+            <td className="px-6 py-4">
+              <button className="text-green-700 hover:underline text-sm">View</button>
+            </td>
+          </tr>
+          <tr className="hover:bg-gray-50">
+            <td className="px-6 py-4">4</td>
+            <td className="px-6 py-4 font-medium">Kofi Boateng</td>
+            <td className="px-6 py-4">GES/2023/0148</td>
+            <td className="px-6 py-4">JHS 1</td>
+            <td className="px-6 py-4">Male</td>
+            <td className="px-6 py-4">
+              <button className="text-green-700 hover:underline text-sm">View</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
 </div>
 ); }
