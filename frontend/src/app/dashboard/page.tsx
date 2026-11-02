@@ -4,8 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+const API_URL = "https://ghana-basic-school-system.onrender.com";
+
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
+  const [stats, setStats] = useState({ students: 0, classes: 0, pendingReports: 0 });
   const router = useRouter();
 
   useEffect(() => {
@@ -16,7 +19,23 @@ export default function Dashboard() {
       return;
     }
     setUser(JSON.parse(userData));
+    fetchStats();
   }, [router]);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/students`);
+      const students = await res.json();
+      const uniqueClasses = new Set(students.map((s: any) => s.class)).size;
+      setStats({
+        students: students.length,
+        classes: uniqueClasses,
+        pendingReports: 0
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -52,15 +71,15 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow p-6 border-l-4 border-green-600">
             <p className="text-gray-500 text-sm">Total Students</p>
-            <p className="text-3xl font-bold text-gray-800 mt-1">248</p>
+            <p className="text-3xl font-bold text-gray-800 mt-1">{stats.students}</p>
           </div>
           <div className="bg-white rounded-xl shadow p-6 border-l-4 border-blue-600">
             <p className="text-gray-500 text-sm">Classes</p>
-            <p className="text-3xl font-bold text-gray-800 mt-1">12</p>
+            <p className="text-3xl font-bold text-gray-800 mt-1">{stats.classes}</p>
           </div>
           <div className="bg-white rounded-xl shadow p-6 border-l-4 border-yellow-500">
             <p className="text-gray-500 text-sm">Pending Reports</p>
-            <p className="text-3xl font-bold text-gray-800 mt-1">5</p>
+            <p className="text-3xl font-bold text-gray-800 mt-1">{stats.pendingReports}</p>
           </div>
         </div>
 
