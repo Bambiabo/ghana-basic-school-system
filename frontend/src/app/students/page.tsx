@@ -1,16 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function StudentsPage() {
-  const [students, setStudents] = useState([
-    { id: 1, name: "Ama Serwaa Mensah", admissionNo: "GES/2023/0145", class: "JHS 2", gender: "Female" },
-    { id: 2, name: "Kwame Asante", admissionNo: "GES/2023/0146", class: "JHS 2", gender: "Male" },
-    { id: 3, name: "Abena Osei", admissionNo: "GES/2023/0147", class: "Basic 6", gender: "Female" },
-    { id: 4, name: "Kofi Boateng", admissionNo: "GES/2023/0148", class: "JHS 1", gender: "Male" },
-  ]);
-
+  const [students, setStudents] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [newStudent, setNewStudent] = useState({
     name: "",
@@ -19,23 +13,40 @@ export default function StudentsPage() {
     gender: "Male",
   });
 
-  const handleAddStudent = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/students");
+      const data = await res.json();
+      setStudents(data);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+    }
+  };
+
+  const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStudent.name || !newStudent.admissionNo) return;
 
-    const student = {
-      id: students.length + 1,
-      ...newStudent,
-    };
-
-    setStudents([...students, student]);
-    setNewStudent({ name: "", admissionNo: "", class: "Basic 1", gender: "Male" });
-    setShowForm(false);
+    try {
+      await fetch("http://localhost:5000/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newStudent),
+      });
+      setNewStudent({ name: "", admissionNo: "", class: "Basic 1", gender: "Male" });
+      setShowForm(false);
+      fetchStudents();
+    } catch (error) {
+      console.error("Error adding student:", error);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Header */}
       <header className="bg-green-800 text-white px-6 py-4 flex justify-between items-center">
         <div>
           <h1 className="font-bold text-lg">Ghana Basic School</h1>
@@ -46,7 +57,6 @@ export default function StudentsPage() {
         </Link>
       </header>
 
-      {/* Main Content */}
       <main className="p-6 max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">All Students</h2>
@@ -58,7 +68,6 @@ export default function StudentsPage() {
           </button>
         </div>
 
-        {/* Add Student Form */}
         {showForm && (
           <div className="bg-white rounded-xl shadow p-6 mb-6">
             <h3 className="font-semibold text-lg mb-4">Add New Student</h3>
@@ -126,7 +135,6 @@ export default function StudentsPage() {
           </div>
         )}
 
-        {/* Students Table */}
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-gray-50 text-gray-600 text-sm">
@@ -148,6 +156,13 @@ export default function StudentsPage() {
                   <td className="px-6 py-4">{student.gender}</td>
                 </tr>
               ))}
+              {students.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    No students yet. Click “Add Student” to add one.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
