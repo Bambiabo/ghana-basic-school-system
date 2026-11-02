@@ -5,10 +5,11 @@ import { useState, useEffect } from "react";
 
 export default function AttendancePage() {
   const [students, setStudents] = useState<any[]>([]);
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState("");
   const [attendance, setAttendance] = useState<any>({});
 
   useEffect(() => {
+    setDate(new Date().toISOString().split("T")[0]);
     fetchStudents();
   }, []);
 
