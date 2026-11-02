@@ -84,7 +84,7 @@ app.post("/api/register", async (req, res) => {
     name,
     email: email.toLowerCase(),
     password: hashedPassword,
-    role: role || "admin",
+    role: role || "Admin",
     status: "approved",
     createdAt: new Date().toISOString()
   };
