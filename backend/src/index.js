@@ -57,7 +57,7 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// Register (creates pending account)
+// Register (TEMPORARY: first account becomes Admin and approved)
 app.post("/api/register", async (req, res) => {
   const { name, email, password, role } = req.body;
   if (!name || !email || !password) {
@@ -84,7 +84,7 @@ app.post("/api/register", async (req, res) => {
     name,
     email: email.toLowerCase(),
     password: hashedPassword,
-    role: role || "Admin",
+    role: "Admin",
     status: "approved",
     createdAt: new Date().toISOString()
   };
@@ -92,10 +92,10 @@ app.post("/api/register", async (req, res) => {
   data.users.push(newUser);
   saveData(data);
 
-  res.json({ message: "Account created. Waiting for Admin approval." });
+  res.json({ message: "Account created and approved as Admin." });
 });
 
-// Login (only approved users)
+// Login
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
