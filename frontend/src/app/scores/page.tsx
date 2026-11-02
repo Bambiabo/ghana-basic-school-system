@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function ScoresPage() {
   const [students, setStudents] = useState([
@@ -10,6 +10,22 @@ export default function ScoresPage() {
     { id: 3, name: "Abena Osei", cat1: "", cat2: "", project: "", exam: "" },
     { id: 4, name: "Kofi Boateng", cat1: "", cat2: "", project: "", exam: "" },
   ]);
+
+  useEffect(() => {
+    loadScores();
+  }, []);
+
+  const loadScores = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/scores");
+      const data = await res.json();
+      if (data && data.length > 0) {
+        setStudents(data);
+      }
+    } catch (error) {
+      console.error("Error loading scores:", error);
+    }
+  };
 
   const updateScore = (id: number, field: string, value: string) => {
     setStudents(
@@ -33,9 +49,18 @@ export default function ScoresPage() {
     return "F";
   };
 
-  const saveScores = () => {
-    localStorage.setItem("studentScores", JSON.stringify(students));
-    alert("Scores saved! You can now view them on the Reports page.");
+  const saveScores = async () => {
+    try {
+      await fetch("http://localhost:5000/api/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(students),
+      });
+      alert("Scores saved successfully!");
+    } catch (error) {
+      console.error("Error saving scores:", error);
+      alert("Failed to save scores.");
+    }
   };
 
   return (
