@@ -79,6 +79,9 @@ export default function Dashboard() {
             <Link href="/attendance" className="bg-orange-100 hover:bg-orange-200 text-orange-800 py-3 px-4 rounded-lg font-medium transition text-center">
               Attendance
             </Link>
+            <Link href="/admin" className="bg-red-100 hover:bg-red-200 text-red-800 py-3 px-4 rounded-lg font-medium transition text-center">
+              Admin Panel
+            </Link>
           </div>
         </div>
       </main>

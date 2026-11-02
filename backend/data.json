@@ -1,0 +1,16 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "School Admin",
+      "email": "cletusontop@proton.me",
+      "password": "thunderA2026$",
+      "role": "Admin",
+      "status": "approved",
+      "createdAt": "2026-11-02T00:00:00.000Z"
+    }
+  ],
+  "students": [],
+  "scores": [],
+  "attendance": []
+}
