@@ -29,6 +29,16 @@ export default function ReportsPage() {
     return "F";
   };
 
+  const subjects = [
+    "Mathematics",
+    "English Language",
+    "Integrated Science",
+    "Social Studies",
+    "Our World Our People (OWOP)",
+    "Ghanaian Language",
+    "Religious and Moral Education (RME)",
+  ];
+
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-green-800 text-white px-6 py-4 flex justify-between items-center print:hidden">
@@ -86,17 +96,28 @@ export default function ReportsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td className="border border-gray-400 px-3 py-2">Mathematics</td>
-                      <td className="border border-gray-400 px-3 py-2 text-center">{student.cat1 || "-"}</td>
-                      <td className="border border-gray-400 px-3 py-2 text-center">{student.cat2 || "-"}</td>
-                      <td className="border border-gray-400 px-3 py-2 text-center">{student.project || "-"}</td>
-                      <td className="border border-gray-400 px-3 py-2 text-center">{student.exam || "-"}</td>
-                      <td className="border border-gray-400 px-3 py-2 text-center font-bold">{total}</td>
-                      <td className="border border-gray-400 px-3 py-2 text-center font-semibold">{grade}</td>
-                    </tr>
+                    {subjects.map((subject, i) => (
+                      <tr key={i}>
+                        <td className="border border-gray-400 px-3 py-2">{subject}</td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">{i === 0 ? (student.cat1 || "-") : "-"}</td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">{i === 0 ? (student.cat2 || "-") : "-"}</td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">{i === 0 ? (student.project || "-") : "-"}</td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">{i === 0 ? (student.exam || "-") : "-"}</td>
+                        <td className="border border-gray-400 px-3 py-2 text-center font-bold">{i === 0 ? total : "-"}</td>
+                        <td className="border border-gray-400 px-3 py-2 text-center font-semibold">{i === 0 ? grade : "-"}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
+
+                <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                  <div>
+                    <p><span className="font-semibold">Overall Average:</span> {total > 0 ? (total / 7).toFixed(1) : "-"}%</p>
+                  </div>
+                  <div>
+                    <p><span className="font-semibold">Attendance:</span> 62 / 65</p>
+                  </div>
+                </div>
 
                 <div className="text-sm mb-8">
                   <p className="font-semibold mb-1">Class Teacher’s Remarks:</p>
