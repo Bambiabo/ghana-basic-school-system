@@ -1,6 +1,31 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+    if (!token || !userData) {
+      router.push("/login");
+      return;
+    }
+    setUser(JSON.parse(userData));
+  }, [router]);
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    router.push("/login");
+  };
+
+  if (!user) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-green-800 text-white px-6 py-4 flex justify-between items-center shadow">
@@ -11,8 +36,13 @@ export default function Dashboard() {
             <p className="text-sm text-green-200">School Management System</p>
           </div>
         </div>
-        <div className="text-sm">
-          Welcome, <span className="font-semibold">Teacher</span>
+        <div className="flex items-center gap-4">
+          <div className="text-sm">
+            Welcome, <span className="font-semibold">{user.name}</span>
+          </div>
+          <button onClick={logout} className="text-sm bg-red-600 hover:bg-red-700 px-3 py-1 rounded">
+            Logout
+          </button>
         </div>
       </header>
 
