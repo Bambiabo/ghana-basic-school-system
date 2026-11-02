@@ -33,6 +33,11 @@ export default function ScoresPage() {
     return "F";
   };
 
+  const saveScores = () => {
+    localStorage.setItem("studentScores", JSON.stringify(students));
+    alert("Scores saved! You can now view them on the Reports page.");
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-green-800 text-white px-6 py-4 flex justify-between items-center">
@@ -94,7 +99,10 @@ export default function ScoresPage() {
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="px-6 py-4 border-b flex justify-between items-center">
             <h3 className="font-semibold text-lg">Score Sheet</h3>
-            <button className="bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg">
+            <button
+              onClick={saveScores}
+              className="bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg"
+            >
               Save All Scores
             </button>
           </div>
