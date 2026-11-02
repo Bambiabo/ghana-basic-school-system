@@ -3,6 +3,7 @@ import cors from "cors";
 import fs from "fs";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Resend } from "resend";
 
 const app = express();
 app.use(cors());
@@ -10,16 +11,21 @@ app.use(express.json());
 
 const DATA_FILE = "./data.json";
 const JWT_SECRET = process.env.JWT_SECRET || "ghana-school-secret-key-change-this-in-production-2026";
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 function loadData() {
   if (!fs.existsSync(DATA_FILE)) {
-    return { users: [], students: [], scores: [], attendance: [] };
+    return { users: [], students: [], scores: [], attendance: [], verificationCodes: [] };
   }
   return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
 }
 
 function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
+
+function generateCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 const loginAttempts = new Map();
@@ -57,23 +63,51 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// Register (TEMPORARY: first account becomes Admin and approved)
-app.post("/api/register", async (req, res) => {
-  const { name, email, password, role } = req.body;
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: "Name, email and password are required" });
-  }
+// Send verification code
+app.post("/api/send-verification", async (req, res) => {
+  const { email, name } = req.body;
+  if (!email) return res.status(400).json({ error: "Email required" });
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ error: "Invalid email format" });
-  }
+  const code = generateCode();
+  const data = loadData();
 
-  if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
-    return res.status(400).json({ error: "Password must be at least 8 characters with uppercase, lowercase and number" });
+  data.verificationCodes = data.verificationCodes || [];
+  data.verificationCodes = data.verificationCodes.filter(v => v.email !== email.toLowerCase());
+  data.verificationCodes.push({
+    email: email.toLowerCase(),
+    code,
+    expires: Date.now() + 10 * 60 * 1000,
+    name
+  });
+  saveData(data);
+
+  try {
+    await resend.emails.send({
+      from: "Ghana Basic School <onboarding@resend.dev>",
+      to: email,
+      subject: "Your Verification Code",
+      html: `<p>Hello ${name || ""},</p><p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`
+    });
+    res.json({ message: "Verification code sent" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to send email" });
+  }
+});
+
+// Verify code and register
+app.post("/api/verify-and-register", async (req, res) => {
+  const { email, code, password, role } = req.body;
+  if (!email || !code || !password) {
+    return res.status(400).json({ error: "Email, code and password required" });
   }
 
   const data = loadData();
+  const verification = data.verificationCodes?.find(v => v.email === email.toLowerCase() && v.code === code);
+
+  if (!verification || Date.now() > verification.expires) {
+    return res.status(400).json({ error: "Invalid or expired code" });
+  }
+
   if (data.users.some(u => u.email === email.toLowerCase())) {
     return res.status(400).json({ error: "Email already registered" });
   }
@@ -81,18 +115,76 @@ app.post("/api/register", async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 12);
   const newUser = {
     id: Date.now(),
-    name,
+    name: verification.name || "User",
     email: email.toLowerCase(),
     password: hashedPassword,
-    role: "Admin",
-    status: "approved",
+    role: role || "Teacher",
+    status: "pending",
     createdAt: new Date().toISOString()
   };
 
   data.users.push(newUser);
+  data.verificationCodes = data.verificationCodes.filter(v => v.email !== email.toLowerCase());
   saveData(data);
 
-  res.json({ message: "Account created and approved as Admin." });
+  res.json({ message: "Account created. Waiting for Admin approval." });
+});
+
+// Forgot password - send code
+app.post("/api/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email required" });
+
+  const data = loadData();
+  const user = data.users.find(u => u.email === email.toLowerCase());
+  if (!user) return res.status(404).json({ error: "No account found with this email" });
+
+  const code = generateCode();
+  data.verificationCodes = data.verificationCodes || [];
+  data.verificationCodes = data.verificationCodes.filter(v => v.email !== email.toLowerCase());
+  data.verificationCodes.push({
+    email: email.toLowerCase(),
+    code,
+    expires: Date.now() + 10 * 60 * 1000,
+    type: "reset"
+  });
+  saveData(data);
+
+  try {
+    await resend.emails.send({
+      from: "Ghana Basic School <onboarding@resend.dev>",
+      to: email,
+      subject: "Password Reset Code",
+      html: `<p>Your password reset code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`
+    });
+    res.json({ message: "Reset code sent" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to send email" });
+  }
+});
+
+// Reset password
+app.post("/api/reset-password", async (req, res) => {
+  const { email, code, newPassword } = req.body;
+  if (!email || !code || !newPassword) {
+    return res.status(400).json({ error: "Email, code and new password required" });
+  }
+
+  const data = loadData();
+  const verification = data.verificationCodes?.find(v => v.email === email.toLowerCase() && v.code === code && v.type === "reset");
+
+  if (!verification || Date.now() > verification.expires) {
+    return res.status(400).json({ error: "Invalid or expired code" });
+  }
+
+  const user = data.users.find(u => u.email === email.toLowerCase());
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  user.password = await bcrypt.hash(newPassword, 12);
+  data.verificationCodes = data.verificationCodes.filter(v => v.email !== email.toLowerCase());
+  saveData(data);
+
+  res.json({ message: "Password reset successfully" });
 });
 
 // Login
@@ -127,7 +219,7 @@ app.post("/api/login", async (req, res) => {
   res.json({ token, user: { name: user.name, email: user.email, role: user.role } });
 });
 
-// Get pending users (Admin only)
+// Existing routes (kept)
 app.get("/api/pending-users", authenticateToken, requireAdmin, (req, res) => {
   const data = loadData();
   const pending = data.users.filter(u => u.status === "pending").map(u => ({
@@ -140,7 +232,6 @@ app.get("/api/pending-users", authenticateToken, requireAdmin, (req, res) => {
   res.json(pending);
 });
 
-// Approve user (Admin only)
 app.post("/api/approve-user", authenticateToken, requireAdmin, (req, res) => {
   const { userId } = req.body;
   const data = loadData();
@@ -152,7 +243,6 @@ app.post("/api/approve-user", authenticateToken, requireAdmin, (req, res) => {
   res.json({ message: "User approved" });
 });
 
-// Existing routes
 app.get("/api/students", (req, res) => {
   const data = loadData();
   res.json(data.students || []);
