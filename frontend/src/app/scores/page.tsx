@@ -52,22 +52,39 @@ export default function ScoresPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <select className="border rounded-lg px-4 py-2.5">
               <option>Select Class</option>
-              <option>JHS 2</option>
+              <option>Basic 1</option>
+              <option>Basic 2</option>
+              <option>Basic 3</option>
+              <option>Basic 4</option>
+              <option>Basic 5</option>
               <option>Basic 6</option>
               <option>JHS 1</option>
+              <option>JHS 2</option>
+              <option>JHS 3</option>
             </select>
+
             <select className="border rounded-lg px-4 py-2.5">
               <option>Select Subject</option>
-              <option>Mathematics</option>
               <option>English Language</option>
+              <option>Mathematics</option>
               <option>Integrated Science</option>
               <option>Social Studies</option>
+              <option>Our World Our People (OWOP)</option>
+              <option>Ghanaian Language</option>
+              <option>Religious and Moral Education (RME)</option>
+              <option>Creative Arts</option>
+              <option>Computing</option>
+              <option>Career Technology</option>
+              <option>French</option>
+              <option>Physical Education</option>
             </select>
+
             <select className="border rounded-lg px-4 py-2.5">
               <option>1st Term</option>
               <option>2nd Term</option>
               <option>3rd Term</option>
             </select>
+
             <button className="bg-green-700 text-white font-semibold py-2.5 rounded-lg">
               Load Score Sheet
             </button>
@@ -76,7 +93,7 @@ export default function ScoresPage() {
 
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="px-6 py-4 border-b flex justify-between items-center">
-            <h3 className="font-semibold text-lg">Score Sheet — Mathematics (JHS 2)</h3>
+            <h3 className="font-semibold text-lg">Score Sheet</h3>
             <button className="bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg">
               Save All Scores
             </button>
