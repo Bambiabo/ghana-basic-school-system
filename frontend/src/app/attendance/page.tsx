@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
+const API_URL = "https://ghana-basic-school-system.onrender.com";
+
 export default function AttendancePage() {
   const [students, setStudents] = useState<any[]>([]);
   const [date, setDate] = useState("");
@@ -15,7 +17,7 @@ export default function AttendancePage() {
 
   const fetchStudents = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/students");
+      const res = await fetch(`${API_URL}/api/students`);
       const data = await res.json();
       setStudents(data);
     } catch (error) {
@@ -29,7 +31,7 @@ export default function AttendancePage() {
 
   const saveAttendance = async () => {
     try {
-      await fetch("http://localhost:5000/api/attendance", {
+      await fetch(`${API_URL}/api/attendance`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ date, records: attendance }),
@@ -117,4 +119,4 @@ export default function AttendancePage() {
       </main>
     </div>
   );
-} 
+}

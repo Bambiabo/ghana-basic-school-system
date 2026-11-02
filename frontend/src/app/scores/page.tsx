@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
+const API_URL = "https://ghana-basic-school-system.onrender.com";
+
 export default function ScoresPage() {
   const [students, setStudents] = useState([
     { id: 1, name: "Ama Serwaa Mensah", cat1: "", cat2: "", project: "", exam: "" },
@@ -17,7 +19,7 @@ export default function ScoresPage() {
 
   const loadScores = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/scores");
+      const res = await fetch(`${API_URL}/api/scores`);
       const data = await res.json();
       if (data && data.length > 0) {
         setStudents(data);
@@ -51,7 +53,7 @@ export default function ScoresPage() {
 
   const saveScores = async () => {
     try {
-      await fetch("http://localhost:5000/api/scores", {
+      await fetch(`${API_URL}/api/scores`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(students),

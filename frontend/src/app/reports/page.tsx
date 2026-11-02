@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+const API_URL = "https://ghana-basic-school-system.onrender.com";
+
 export default function ReportsPage() {
   const [students, setStudents] = useState<any[]>([]);
 
@@ -12,7 +14,7 @@ export default function ReportsPage() {
 
   const loadScores = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/scores");
+      const res = await fetch(`${API_URL}/api/scores`);
       const data = await res.json();
       if (data && data.length > 0) {
         setStudents(data);
