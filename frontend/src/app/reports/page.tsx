@@ -7,11 +7,20 @@ export default function ReportsPage() {
   const [students, setStudents] = useState<any[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("studentScores");
-    if (saved) {
-      setStudents(JSON.parse(saved));
-    }
+    loadScores();
   }, []);
+
+  const loadScores = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/scores");
+      const data = await res.json();
+      if (data && data.length > 0) {
+        setStudents(data);
+      }
+    } catch (error) {
+      console.error("Error loading scores:", error);
+    }
+  };
 
   const getTotal = (s: any) => {
     const c1 = Number(s.cat1) || 0;
