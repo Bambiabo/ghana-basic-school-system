@@ -22,13 +22,12 @@ function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-// Simple rate limiting for login
 const loginAttempts = new Map();
 
 function isRateLimited(email) {
   const now = Date.now();
   const attempts = loginAttempts.get(email) || [];
-  const recent = attempts.filter(t => now - t < 15 * 60 * 1000); // 15 minutes
+  const recent = attempts.filter(t => now - t < 15 * 60 * 1000);
   loginAttempts.set(email, recent);
   return recent.length >= 5;
 }
@@ -39,7 +38,6 @@ function recordAttempt(email) {
   loginAttempts.set(email, attempts);
 }
 
-// Auth middleware
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -52,7 +50,14 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// Register
+function requireAdmin(req, res, next) {
+  if (req.user.role !== "Admin") {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+  next();
+}
+
+// Register (creates pending account)
 app.post("/api/register", async (req, res) => {
   const { name, email, password, role } = req.body;
   if (!name || !email || !password) {
@@ -80,16 +85,17 @@ app.post("/api/register", async (req, res) => {
     email: email.toLowerCase(),
     password: hashedPassword,
     role: role || "Teacher",
+    status: "pending",
     createdAt: new Date().toISOString()
   };
 
   data.users.push(newUser);
   saveData(data);
 
-  res.json({ message: "Account created successfully" });
+  res.json({ message: "Account created. Waiting for Admin approval." });
 });
 
-// Login
+// Login (only approved users)
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -108,6 +114,10 @@ app.post("/api/login", async (req, res) => {
     return res.status(401).json({ error: "Invalid email or password" });
   }
 
+  if (user.status !== "approved") {
+    return res.status(403).json({ error: "Account is pending Admin approval" });
+  }
+
   const token = jwt.sign(
     { id: user.id, email: user.email, name: user.name, role: user.role },
     JWT_SECRET,
@@ -117,12 +127,32 @@ app.post("/api/login", async (req, res) => {
   res.json({ token, user: { name: user.name, email: user.email, role: user.role } });
 });
 
-// Protected routes example (you can add more later)
-app.get("/api/me", authenticateToken, (req, res) => {
-  res.json(req.user);
+// Get pending users (Admin only)
+app.get("/api/pending-users", authenticateToken, requireAdmin, (req, res) => {
+  const data = loadData();
+  const pending = data.users.filter(u => u.status === "pending").map(u => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    createdAt: u.createdAt
+  }));
+  res.json(pending);
 });
 
-// Existing routes (kept for now)
+// Approve user (Admin only)
+app.post("/api/approve-user", authenticateToken, requireAdmin, (req, res) => {
+  const { userId } = req.body;
+  const data = loadData();
+  const user = data.users.find(u => u.id === userId);
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  user.status = "approved";
+  saveData(data);
+  res.json({ message: "User approved" });
+});
+
+// Existing routes
 app.get("/api/students", (req, res) => {
   const data = loadData();
   res.json(data.students || []);
