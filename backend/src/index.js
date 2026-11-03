@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || "ghana-school-secret-key-change-this-in-production-2026";
-const resend = new Resend(process.env.RESEND_API_KEY || "re_temporary_key");
+const resend = new Resend(process.env.RESEND_API_KEY);
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
