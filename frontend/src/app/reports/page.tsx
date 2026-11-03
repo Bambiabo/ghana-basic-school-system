@@ -87,8 +87,12 @@ export default function ReportsPage() {
                     <p><span className="font-semibold">Position:</span> {index + 1}</p>
                   </div>
 
-                  <div className="w-28 h-32 border-2 border-gray-400 flex items-center justify-center bg-gray-50 text-xs text-gray-400 text-center">
-                    Passport<br />Photo
+                  <div className="w-28 h-32 border-2 border-gray-400 flex items-center justify-center bg-gray-50 overflow-hidden">
+                    {student.photo ? (
+                      <img src={student.photo} alt="Passport" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xs text-gray-400 text-center">Passport<br />Photo</span>
+                    )}
                   </div>
                 </div>
 

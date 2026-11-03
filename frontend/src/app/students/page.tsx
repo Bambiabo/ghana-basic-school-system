@@ -14,6 +14,7 @@ export default function StudentsPage() {
     admissionNo: "",
     class: "Basic 1",
     gender: "Male",
+    photo: ""
   });
   const router = useRouter();
 
@@ -32,8 +33,18 @@ export default function StudentsPage() {
       const data = await res.json();
       setStudents(data);
     } catch (error) {
-      console.error("Error fetching students:", error);
+      console.error(error);
     }
+  };
+
+  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewStudent({ ...newStudent, photo: reader.result as string });
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleAddStudent = async (e: React.FormEvent) => {
@@ -46,11 +57,11 @@ export default function StudentsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newStudent),
       });
-      setNewStudent({ name: "", admissionNo: "", class: "Basic 1", gender: "Male" });
+      setNewStudent({ name: "", admissionNo: "", class: "Basic 1", gender: "Male", photo: "" });
       setShowForm(false);
       fetchStudents();
     } catch (error) {
-      console.error("Error adding student:", error);
+      console.error(error);
     }
   };
 
@@ -98,6 +109,11 @@ export default function StudentsPage() {
                 </select>
               </div>
               <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Passport Photo</label>
+                <input type="file" accept="image/*" onChange={handlePhoto} className="w-full border rounded-lg px-4 py-2" />
+                {newStudent.photo && <img src={newStudent.photo} alt="Preview" className="mt-2 w-20 h-24 object-cover border" />}
+              </div>
+              <div className="md:col-span-2">
                 <button type="submit" className="bg-green-700 hover:bg-green-800 text-white px-6 py-2.5 rounded-lg font-medium">Save Student</button>
               </div>
             </form>
@@ -108,7 +124,7 @@ export default function StudentsPage() {
           <table className="w-full text-left">
             <thead className="bg-gray-50 text-gray-600 text-sm">
               <tr>
-                <th className="px-6 py-3">#</th>
+                <th className="px-6 py-3">Photo</th>
                 <th className="px-6 py-3">Full Name</th>
                 <th className="px-6 py-3">Admission No.</th>
                 <th className="px-6 py-3">Class</th>
@@ -116,9 +132,11 @@ export default function StudentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {students.map((student, index) => (
+              {students.map((student) => (
                 <tr key={student.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">{index + 1}</td>
+                  <td className="px-6 py-4">
+                    {student.photo ? <img src={student.photo} alt="" className="w-12 h-14 object-cover border" /> : <div className="w-12 h-14 bg-gray-200 border" />}
+                  </td>
                   <td className="px-6 py-4 font-medium">{student.name}</td>
                   <td className="px-6 py-4">{student.admission_no}</td>
                   <td className="px-6 py-4">{student.class}</td>
