@@ -132,9 +132,12 @@ export default function ReportsPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">
                   <div>
                     <p><span className="font-semibold">Overall Average:</span> {average}%</p>
-                  </div>
-                  <div>
                     <p><span className="font-semibold">Attendance:</span> 62 / 65</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p><span className="font-semibold">Conduct:</span> Very Good</p>
+                    <p><span className="font-semibold">Attitude to Work:</span> Good</p>
+                    <p><span className="font-semibold">Interest:</span> Very Good</p>
                   </div>
                 </div>
 
@@ -142,7 +145,7 @@ export default function ReportsPage() {
                   <p className="font-semibold mb-1">Class Teacher’s Remarks:</p>
                   <p className="border-b border-gray-300 pb-6">Good effort. Keep working hard.</p>
                   <p className="font-semibold mt-4 mb-1">Headteacher’s Remarks:</p>
-                  <p className="border-b border-gray-300 pb-6">Well done.</p>
+                  <p className="border-b border-gray-300 pb-6">Well done. Continue in this manner.</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-8 text-sm mt-10">
