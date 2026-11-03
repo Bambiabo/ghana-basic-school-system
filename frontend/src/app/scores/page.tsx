@@ -16,14 +16,21 @@ export default function ScoresPage() {
       router.push("/login");
       return;
     }
-    loadScores();
+    fetchStudents();
   }, [router]);
 
-  const loadScores = async () => {
+  const fetchStudents = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/scores`);
+      const res = await fetch(`${API_URL}/api/students`);
       const data = await res.json();
-      if (data && data.length > 0) setStudents(data);
+      const studentsWithScores = data.map((s: any) => ({
+        ...s,
+        cat1: "",
+        cat2: "",
+        project: "",
+        exam: ""
+      }));
+      setStudents(studentsWithScores);
     } catch (error) {
       console.error(error);
     }
@@ -71,45 +78,62 @@ export default function ScoresPage() {
       <main className="p-6 max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Enter Student Scores</h2>
 
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <div className="px-6 py-4 border-b flex justify-between items-center">
-            <h3 className="font-semibold text-lg">Score Sheet</h3>
-            <button onClick={saveScores} className="bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg">Save All Scores</button>
+        {students.length === 0 ? (
+          <div className="bg-white rounded-xl shadow p-8 text-center">
+            <p className="text-gray-600">No students found. Please add students first.</p>
+            <Link href="/students" className="text-green-700 underline mt-2 inline-block">Go to Students</Link>
           </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <div className="px-6 py-4 border-b flex justify-between items-center">
+              <h3 className="font-semibold text-lg">Score Sheet</h3>
+              <button onClick={saveScores} className="bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg">
+                Save All Scores
+              </button>
+            </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="px-4 py-3 text-left">Student Name</th>
-                  <th className="px-4 py-3">CAT 1 (20)</th>
-                  <th className="px-4 py-3">CAT 2 (20)</th>
-                  <th className="px-4 py-3">Project (10)</th>
-                  <th className="px-4 py-3">Exam (50)</th>
-                  <th className="px-4 py-3">Total</th>
-                  <th className="px-4 py-3">Grade</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((student) => {
-                  const total = getTotal(student);
-                  const grade = getGrade(total);
-                  return (
-                    <tr key={student.id} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{student.name || `Student ${student.student_id}`}</td>
-                      <td className="px-4 py-3"><input type="number" value={student.cat1 || ""} onChange={(e) => updateScore(student.id, "cat1", e.target.value)} className="w-16 border rounded px-2 py-1 text-center" /></td>
-                      <td className="px-4 py-3"><input type="number" value={student.cat2 || ""} onChange={(e) => updateScore(student.id, "cat2", e.target.value)} className="w-16 border rounded px-2 py-1 text-center" /></td>
-                      <td className="px-4 py-3"><input type="number" value={student.project || ""} onChange={(e) => updateScore(student.id, "project", e.target.value)} className="w-16 border rounded px-2 py-1 text-center" /></td>
-                      <td className="px-4 py-3"><input type="number" value={student.exam || ""} onChange={(e) => updateScore(student.id, "exam", e.target.value)} className="w-16 border rounded px-2 py-1 text-center" /></td>
-                      <td className="px-4 py-3 font-bold text-center">{total}</td>
-                      <td className="px-4 py-3 font-semibold text-center">{grade}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-600">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Student Name</th>
+                    <th className="px-4 py-3">CAT 1 (20)</th>
+                    <th className="px-4 py-3">CAT 2 (20)</th>
+                    <th className="px-4 py-3">Project (10)</th>
+                    <th className="px-4 py-3">Exam (50)</th>
+                    <th className="px-4 py-3">Total</th>
+                    <th className="px-4 py-3">Grade</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((student) => {
+                    const total = getTotal(student);
+                    const grade = getGrade(total);
+                    return (
+                      <tr key={student.id} className="border-b hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium">{student.name}</td>
+                        <td className="px-4 py-3">
+                          <input type="number" value={student.cat1} onChange={(e) => updateScore(student.id, "cat1", e.target.value)} className="w-16 border rounded px-2 py-1 text-center" />
+                        </td>
+                        <td className="px-4 py-3">
+                          <input type="number" value={student.cat2} onChange={(e) => updateScore(student.id, "cat2", e.target.value)} className="w-16 border rounded px-2 py-1 text-center" />
+                        </td>
+                        <td className="px-4 py-3">
+                          <input type="number" value={student.project} onChange={(e) => updateScore(student.id, "project", e.target.value)} className="w-16 border rounded px-2 py-1 text-center" />
+                        </td>
+                        <td className="px-4 py-3">
+                          <input type="number" value={student.exam} onChange={(e) => updateScore(student.id, "exam", e.target.value)} className="w-16 border rounded px-2 py-1 text-center" />
+                        </td>
+                        <td className="px-4 py-3 font-bold text-center">{total}</td>
+                        <td className="px-4 py-3 font-semibold text-center">{grade}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
