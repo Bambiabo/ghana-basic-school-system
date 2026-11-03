@@ -153,6 +153,12 @@ export default function ReportsPage() {
                     <div className="border-t border-gray-400 pt-2 mt-12">Headteacher’s Signature & Stamp</div>
                   </div>
                 </div>
+
+                <div className="text-center mt-6 print:hidden">
+                  <button onClick={() => window.print()} className="bg-green-700 text-white px-6 py-2 rounded-lg text-sm">
+                    Print This Report
+                  </button>
+                </div>
               </div>
             );
           })
