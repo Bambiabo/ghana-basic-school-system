@@ -34,11 +34,15 @@ async function initDB() {
       admission_no TEXT,
       class TEXT,
       gender TEXT,
+      photo TEXT,
       created_at TIMESTAMP DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS scores (
       id SERIAL PRIMARY KEY,
       student_id INTEGER,
+      class TEXT,
+      term TEXT,
+      subject TEXT,
       cat1 INTEGER,
       cat2 INTEGER,
       project INTEGER,
@@ -278,10 +282,10 @@ app.get("/api/students", async (req, res) => {
 });
 
 app.post("/api/students", async (req, res) => {
-  const { name, admissionNo, class: className, gender } = req.body;
+  const { name, admissionNo, class: className, gender, photo } = req.body;
   const result = await pool.query(
-    "INSERT INTO students (name, admission_no, class, gender) VALUES ($1, $2, $3, $4) RETURNING *",
-    [name, admissionNo, className, gender]
+    "INSERT INTO students (name, admission_no, class, gender, photo) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+    [name, admissionNo, className, gender, photo || null]
   );
   res.json(result.rows[0]);
 });
@@ -292,11 +296,11 @@ app.get("/api/scores", async (req, res) => {
 });
 
 app.post("/api/scores", async (req, res) => {
-  await pool.query("DELETE FROM scores");
-  for (const s of req.body) {
+  const scores = req.body;
+  for (const s of scores) {
     await pool.query(
-      "INSERT INTO scores (student_id, cat1, cat2, project, exam) VALUES ($1, $2, $3, $4, $5)",
-      [s.id, s.cat1 || 0, s.cat2 || 0, s.project || 0, s.exam || 0]
+      "INSERT INTO scores (student_id, class, term, subject, cat1, cat2, project, exam) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+      [s.studentId || s.id, s.class, s.term, s.subject, s.cat1 || 0, s.cat2 || 0, s.project || 0, s.exam || 0]
     );
   }
   res.json({ message: "Scores saved" });
