@@ -1,28 +1,67 @@
 import express from "express";
 import cors from "cors";
-import fs from "fs";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Resend } from "resend";
+import pkg from "pg";
+const { Pool } = pkg;
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const DATA_FILE = "./data.json";
 const JWT_SECRET = process.env.JWT_SECRET || "ghana-school-secret-key-change-this-in-production-2026";
 const resend = new Resend(process.env.RESEND_API_KEY);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
-function loadData() {
-  if (!fs.existsSync(DATA_FILE)) {
-    return { users: [], students: [], scores: [], attendance: [], verificationCodes: [] };
-  }
-  return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      name TEXT,
+      email TEXT UNIQUE,
+      password TEXT,
+      role TEXT,
+      status TEXT DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS students (
+      id SERIAL PRIMARY KEY,
+      name TEXT,
+      admission_no TEXT,
+      class TEXT,
+      gender TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS scores (
+      id SERIAL PRIMARY KEY,
+      student_id INTEGER,
+      cat1 INTEGER,
+      cat2 INTEGER,
+      project INTEGER,
+      exam INTEGER,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS attendance (
+      id SERIAL PRIMARY KEY,
+      date TEXT,
+      records JSONB,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS verification_codes (
+      id SERIAL PRIMARY KEY,
+      email TEXT,
+      code TEXT,
+      type TEXT,
+      expires BIGINT,
+      name TEXT
+    );
+  `);
 }
-
-function saveData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
+initDB().catch(console.error);
 
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -69,17 +108,11 @@ app.post("/api/send-verification", async (req, res) => {
   if (!email) return res.status(400).json({ error: "Email required" });
 
   const code = generateCode();
-  const data = loadData();
-
-  data.verificationCodes = data.verificationCodes || [];
-  data.verificationCodes = data.verificationCodes.filter(v => v.email !== email.toLowerCase());
-  data.verificationCodes.push({
-    email: email.toLowerCase(),
-    code,
-    expires: Date.now() + 10 * 60 * 1000,
-    name
-  });
-  saveData(data);
+  await pool.query("DELETE FROM verification_codes WHERE email = $1", [email.toLowerCase()]);
+  await pool.query(
+    "INSERT INTO verification_codes (email, code, expires, name) VALUES ($1, $2, $3, $4)",
+    [email.toLowerCase(), code, Date.now() + 10 * 60 * 1000, name]
+  );
 
   try {
     await resend.emails.send({
@@ -94,61 +127,54 @@ app.post("/api/send-verification", async (req, res) => {
   }
 });
 
-// Verify code and register
+// Verify and register
 app.post("/api/verify-and-register", async (req, res) => {
   const { email, code, password, role } = req.body;
   if (!email || !code || !password) {
     return res.status(400).json({ error: "Email, code and password required" });
   }
 
-  const data = loadData();
-  const verification = data.verificationCodes?.find(v => v.email === email.toLowerCase() && v.code === code);
+  const result = await pool.query(
+    "SELECT * FROM verification_codes WHERE email = $1 AND code = $2",
+    [email.toLowerCase(), code]
+  );
+  const verification = result.rows[0];
 
   if (!verification || Date.now() > verification.expires) {
     return res.status(400).json({ error: "Invalid or expired code" });
   }
 
-  if (data.users.some(u => u.email === email.toLowerCase())) {
+  const existing = await pool.query("SELECT id FROM users WHERE email = $1", [email.toLowerCase()]);
+  if (existing.rows.length > 0) {
     return res.status(400).json({ error: "Email already registered" });
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
-  const newUser = {
-    id: Date.now(),
-    name: verification.name || "User",
-    email: email.toLowerCase(),
-    password: hashedPassword,
-    role: role || "Teacher",
-    status: "pending",
-    createdAt: new Date().toISOString()
-  };
-
-  data.users.push(newUser);
-  data.verificationCodes = data.verificationCodes.filter(v => v.email !== email.toLowerCase());
-  saveData(data);
+  await pool.query(
+    "INSERT INTO users (name, email, password, role, status) VALUES ($1, $2, $3, $4, $5)",
+    [verification.name || "User", email.toLowerCase(), hashedPassword, role || "Teacher", "pending"]
+  );
+  await pool.query("DELETE FROM verification_codes WHERE email = $1", [email.toLowerCase()]);
 
   res.json({ message: "Account created. Waiting for Admin approval." });
 });
 
-// Forgot password - send code
+// Forgot password
 app.post("/api/forgot-password", async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Email required" });
 
-  const data = loadData();
-  const user = data.users.find(u => u.email === email.toLowerCase());
-  if (!user) return res.status(404).json({ error: "No account found with this email" });
+  const userResult = await pool.query("SELECT id FROM users WHERE email = $1", [email.toLowerCase()]);
+  if (userResult.rows.length === 0) {
+    return res.status(404).json({ error: "No account found with this email" });
+  }
 
   const code = generateCode();
-  data.verificationCodes = data.verificationCodes || [];
-  data.verificationCodes = data.verificationCodes.filter(v => v.email !== email.toLowerCase());
-  data.verificationCodes.push({
-    email: email.toLowerCase(),
-    code,
-    expires: Date.now() + 10 * 60 * 1000,
-    type: "reset"
-  });
-  saveData(data);
+  await pool.query("DELETE FROM verification_codes WHERE email = $1", [email.toLowerCase()]);
+  await pool.query(
+    "INSERT INTO verification_codes (email, code, type, expires) VALUES ($1, $2, $3, $4)",
+    [email.toLowerCase(), code, "reset", Date.now() + 10 * 60 * 1000]
+  );
 
   try {
     await resend.emails.send({
@@ -170,19 +196,19 @@ app.post("/api/reset-password", async (req, res) => {
     return res.status(400).json({ error: "Email, code and new password required" });
   }
 
-  const data = loadData();
-  const verification = data.verificationCodes?.find(v => v.email === email.toLowerCase() && v.code === code && v.type === "reset");
+  const result = await pool.query(
+    "SELECT * FROM verification_codes WHERE email = $1 AND code = $2 AND type = 'reset'",
+    [email.toLowerCase(), code]
+  );
+  const verification = result.rows[0];
 
   if (!verification || Date.now() > verification.expires) {
     return res.status(400).json({ error: "Invalid or expired code" });
   }
 
-  const user = data.users.find(u => u.email === email.toLowerCase());
-  if (!user) return res.status(404).json({ error: "User not found" });
-
-  user.password = await bcrypt.hash(newPassword, 12);
-  data.verificationCodes = data.verificationCodes.filter(v => v.email !== email.toLowerCase());
-  saveData(data);
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+  await pool.query("UPDATE users SET password = $1 WHERE email = $2", [hashedPassword, email.toLowerCase()]);
+  await pool.query("DELETE FROM verification_codes WHERE email = $1", [email.toLowerCase()]);
 
   res.json({ message: "Password reset successfully" });
 });
@@ -198,8 +224,8 @@ app.post("/api/login", async (req, res) => {
     return res.status(429).json({ error: "Too many login attempts. Try again later." });
   }
 
-  const data = loadData();
-  const user = data.users.find(u => u.email === email.toLowerCase());
+  const result = await pool.query("SELECT * FROM users WHERE email = $1", [email.toLowerCase()]);
+  const user = result.rows[0];
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     recordAttempt(email);
@@ -219,66 +245,63 @@ app.post("/api/login", async (req, res) => {
   res.json({ token, user: { name: user.name, email: user.email, role: user.role } });
 });
 
-// Existing routes (kept)
-app.get("/api/pending-users", authenticateToken, requireAdmin, (req, res) => {
-  const data = loadData();
-  const pending = data.users.filter(u => u.status === "pending").map(u => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    role: u.role,
-    createdAt: u.createdAt
-  }));
-  res.json(pending);
+// Pending users
+app.get("/api/pending-users", authenticateToken, requireAdmin, async (req, res) => {
+  const result = await pool.query(
+    "SELECT id, name, email, role, created_at FROM users WHERE status = 'pending'"
+  );
+  res.json(result.rows);
 });
 
-app.post("/api/approve-user", authenticateToken, requireAdmin, (req, res) => {
+// Approve user
+app.post("/api/approve-user", authenticateToken, requireAdmin, async (req, res) => {
   const { userId } = req.body;
-  const data = loadData();
-  const user = data.users.find(u => u.id === userId);
-  if (!user) return res.status(404).json({ error: "User not found" });
-
-  user.status = "approved";
-  saveData(data);
+  await pool.query("UPDATE users SET status = 'approved' WHERE id = $1", [userId]);
   res.json({ message: "User approved" });
 });
 
-app.get("/api/students", (req, res) => {
-  const data = loadData();
-  res.json(data.students || []);
+// Students
+app.get("/api/students", async (req, res) => {
+  const result = await pool.query("SELECT * FROM students ORDER BY id DESC");
+  res.json(result.rows);
 });
 
-app.post("/api/students", (req, res) => {
-  const data = loadData();
-  const newStudent = { id: Date.now(), ...req.body };
-  if (!data.students) data.students = [];
-  data.students.push(newStudent);
-  saveData(data);
-  res.json(newStudent);
+app.post("/api/students", async (req, res) => {
+  const { name, admissionNo, class: className, gender } = req.body;
+  const result = await pool.query(
+    "INSERT INTO students (name, admission_no, class, gender) VALUES ($1, $2, $3, $4) RETURNING *",
+    [name, admissionNo, className, gender]
+  );
+  res.json(result.rows[0]);
 });
 
-app.get("/api/scores", (req, res) => {
-  const data = loadData();
-  res.json(data.scores || []);
+// Scores
+app.get("/api/scores", async (req, res) => {
+  const result = await pool.query("SELECT * FROM scores");
+  res.json(result.rows);
 });
 
-app.post("/api/scores", (req, res) => {
-  const data = loadData();
-  data.scores = req.body;
-  saveData(data);
+app.post("/api/scores", async (req, res) => {
+  // Simple version: clear and re-insert for now
+  await pool.query("DELETE FROM scores");
+  for (const s of req.body) {
+    await pool.query(
+      "INSERT INTO scores (student_id, cat1, cat2, project, exam) VALUES ($1, $2, $3, $4, $5)",
+      [s.id, s.cat1 || 0, s.cat2 || 0, s.project || 0, s.exam || 0]
+    );
+  }
   res.json({ message: "Scores saved" });
 });
 
-app.get("/api/attendance", (req, res) => {
-  const data = loadData();
-  res.json(data.attendance || []);
+// Attendance
+app.get("/api/attendance", async (req, res) => {
+  const result = await pool.query("SELECT * FROM attendance ORDER BY id DESC");
+  res.json(result.rows);
 });
 
-app.post("/api/attendance", (req, res) => {
-  const data = loadData();
-  if (!data.attendance) data.attendance = [];
-  data.attendance.push(req.body);
-  saveData(data);
+app.post("/api/attendance", async (req, res) => {
+  const { date, records } = req.body;
+  await pool.query("INSERT INTO attendance (date, records) VALUES ($1, $2)", [date, records]);
   res.json({ message: "Attendance saved" });
 });
 
