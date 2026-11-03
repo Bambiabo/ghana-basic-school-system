@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const API_URL = "https://ghana-basic-school-system.onrender.com";
 
@@ -9,11 +10,17 @@ export default function AttendancePage() {
   const [students, setStudents] = useState<any[]>([]);
   const [date, setDate] = useState("");
   const [attendance, setAttendance] = useState<any>({});
+  const router = useRouter();
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
     setDate(new Date().toISOString().split("T")[0]);
     fetchStudents();
-  }, []);
+  }, [router]);
 
   const fetchStudents = async () => {
     try {
@@ -49,9 +56,7 @@ export default function AttendancePage() {
           <h1 className="font-bold text-lg">Ghana Basic School</h1>
           <p className="text-sm text-green-200">Attendance</p>
         </div>
-        <Link href="/dashboard" className="text-sm hover:underline">
-          ← Back to Dashboard
-        </Link>
+        <Link href="/dashboard" className="text-sm hover:underline">← Back to Dashboard</Link>
       </header>
 
       <main className="p-6 max-w-4xl mx-auto">
@@ -59,25 +64,14 @@ export default function AttendancePage() {
 
         <div className="bg-white rounded-xl shadow p-6 mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="border rounded-lg px-4 py-2"
-          />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border rounded-lg px-4 py-2" />
         </div>
 
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="px-6 py-4 border-b flex justify-between items-center">
             <h3 className="font-semibold">Mark Attendance</h3>
-            <button
-              onClick={saveAttendance}
-              className="bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg"
-            >
-              Save Attendance
-            </button>
+            <button onClick={saveAttendance} className="bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg">Save Attendance</button>
           </div>
-
           <div className="divide-y">
             {students.map((student) => (
               <div key={student.id} className="px-6 py-4 flex items-center justify-between">
@@ -86,34 +80,12 @@ export default function AttendancePage() {
                   <p className="text-sm text-gray-500">{student.class}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => toggleAttendance(student.id, "Present")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                      attendance[student.id] === "Present"
-                        ? "bg-green-600 text-white"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    Present
-                  </button>
-                  <button
-                    onClick={() => toggleAttendance(student.id, "Absent")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                      attendance[student.id] === "Absent"
-                        ? "bg-red-600 text-white"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    Absent
-                  </button>
+                  <button onClick={() => toggleAttendance(student.id, "Present")} className={`px-4 py-2 rounded-lg text-sm font-medium ${attendance[student.id] === "Present" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-700"}`}>Present</button>
+                  <button onClick={() => toggleAttendance(student.id, "Absent")} className={`px-4 py-2 rounded-lg text-sm font-medium ${attendance[student.id] === "Absent" ? "bg-red-600 text-white" : "bg-gray-100 text-gray-700"}`}>Absent</button>
                 </div>
               </div>
             ))}
-            {students.length === 0 && (
-              <p className="px-6 py-8 text-center text-gray-500">
-                No students found. Add students first.
-              </p>
-            )}
+            {students.length === 0 && <p className="px-6 py-8 text-center text-gray-500">No students found. Add students first.</p>}
           </div>
         </div>
       </main>
