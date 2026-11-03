@@ -102,7 +102,6 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// Send verification code
 app.post("/api/send-verification", async (req, res) => {
   const { email, name } = req.body;
   if (!email) return res.status(400).json({ error: "Email required" });
@@ -127,7 +126,6 @@ app.post("/api/send-verification", async (req, res) => {
   }
 });
 
-// Verify and register
 app.post("/api/verify-and-register", async (req, res) => {
   const { email, code, password, role } = req.body;
   if (!email || !code || !password) {
@@ -159,7 +157,6 @@ app.post("/api/verify-and-register", async (req, res) => {
   res.json({ message: "Account created. Waiting for Admin approval." });
 });
 
-// Forgot password
 app.post("/api/forgot-password", async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Email required" });
@@ -189,7 +186,6 @@ app.post("/api/forgot-password", async (req, res) => {
   }
 });
 
-// Reset password
 app.post("/api/reset-password", async (req, res) => {
   const { email, code, newPassword } = req.body;
   if (!email || !code || !newPassword) {
@@ -213,7 +209,6 @@ app.post("/api/reset-password", async (req, res) => {
   res.json({ message: "Password reset successfully" });
 });
 
-// Login
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -233,7 +228,7 @@ app.post("/api/login", async (req, res) => {
   }
 
   if (user.status !== "approved") {
-    return res.status(403).json({ error: "Account is pending Admin approval" });
+    return res.status(403).json({ error: "Account is not approved or has been revoked" });
   }
 
   const token = jwt.sign(
@@ -245,7 +240,6 @@ app.post("/api/login", async (req, res) => {
   res.json({ token, user: { name: user.name, email: user.email, role: user.role } });
 });
 
-// Pending users
 app.get("/api/pending-users", authenticateToken, requireAdmin, async (req, res) => {
   const result = await pool.query(
     "SELECT id, name, email, role, created_at FROM users WHERE status = 'pending'"
@@ -253,14 +247,31 @@ app.get("/api/pending-users", authenticateToken, requireAdmin, async (req, res) 
   res.json(result.rows);
 });
 
-// Approve user
 app.post("/api/approve-user", authenticateToken, requireAdmin, async (req, res) => {
   const { userId } = req.body;
   await pool.query("UPDATE users SET status = 'approved' WHERE id = $1", [userId]);
   res.json({ message: "User approved" });
 });
 
-// Students
+app.get("/api/all-users", authenticateToken, requireAdmin, async (req, res) => {
+  const result = await pool.query(
+    "SELECT id, name, email, role, status, created_at FROM users ORDER BY id DESC"
+  );
+  res.json(result.rows);
+});
+
+app.post("/api/revoke-user", authenticateToken, requireAdmin, async (req, res) => {
+  const { userId } = req.body;
+  await pool.query("UPDATE users SET status = 'revoked' WHERE id = $1", [userId]);
+  res.json({ message: "User access revoked" });
+});
+
+app.post("/api/delete-user", authenticateToken, requireAdmin, async (req, res) => {
+  const { userId } = req.body;
+  await pool.query("DELETE FROM users WHERE id = $1", [userId]);
+  res.json({ message: "User deleted" });
+});
+
 app.get("/api/students", async (req, res) => {
   const result = await pool.query("SELECT * FROM students ORDER BY id DESC");
   res.json(result.rows);
@@ -275,14 +286,12 @@ app.post("/api/students", async (req, res) => {
   res.json(result.rows[0]);
 });
 
-// Scores
 app.get("/api/scores", async (req, res) => {
   const result = await pool.query("SELECT * FROM scores");
   res.json(result.rows);
 });
 
 app.post("/api/scores", async (req, res) => {
-  // Simple version: clear and re-insert for now
   await pool.query("DELETE FROM scores");
   for (const s of req.body) {
     await pool.query(
@@ -293,7 +302,6 @@ app.post("/api/scores", async (req, res) => {
   res.json({ message: "Scores saved" });
 });
 
-// Attendance
 app.get("/api/attendance", async (req, res) => {
   const result = await pool.query("SELECT * FROM attendance ORDER BY id DESC");
   res.json(result.rows);
