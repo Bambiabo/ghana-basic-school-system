@@ -79,14 +79,16 @@ export default function ReportsPage() {
                   <p className="text-sm">1st Term — 2025/2026 Academic Year</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-                  <div>
+                <div className="flex justify-between items-start mb-6">
+                  <div className="text-sm space-y-1">
                     <p><span className="font-semibold">Name:</span> {student.name}</p>
                     <p><span className="font-semibold">Admission No:</span> {student.admission_no || "-"}</p>
-                  </div>
-                  <div>
                     <p><span className="font-semibold">Class:</span> {student.class}</p>
                     <p><span className="font-semibold">Position:</span> {index + 1}</p>
+                  </div>
+
+                  <div className="w-28 h-32 border-2 border-gray-400 flex items-center justify-center bg-gray-50 text-xs text-gray-400 text-center">
+                    Passport<br />Photo
                   </div>
                 </div>
 
