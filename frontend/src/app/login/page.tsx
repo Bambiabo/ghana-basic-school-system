@@ -18,10 +18,12 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Login success:", userCredential.user);
       router.push("/dashboard");
     } catch (err: any) {
-      setError("Invalid email or password");
+      console.error(err);
+      setError(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -83,4 +85,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-} 
+}
