@@ -6,9 +6,17 @@ import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firesto
 import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
+type User = {
+  id: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  status?: string;
+};
+
 export default function AdminPage() {
-  const [pending, setPending] = useState<any[]>([]);
-  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [pending, setPending] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -26,7 +34,10 @@ export default function AdminPage() {
 
   const loadUsers = async () => {
     const snapshot = await getDocs(collection(db, "users"));
-    const users = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    const users: User[] = snapshot.docs.map(d => ({
+      id: d.id,
+      ...d.data()
+    } as User));
     setPending(users.filter(u => u.status === "pending"));
     setAllUsers(users);
   };
