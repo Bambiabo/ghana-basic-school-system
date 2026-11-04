@@ -4,9 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "../../lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
