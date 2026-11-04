@@ -11,7 +11,10 @@ app.use(cors());
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || "ghana-school-secret-key-change-this-in-production-2026";
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend = null;
+if (process.env.RESEND_API_KEY) {
+  resend = new Resend(process.env.RESEND_API_KEY);
+}
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
@@ -117,6 +120,10 @@ app.post("/api/send-verification", async (req, res) => {
     [email.toLowerCase(), code, Date.now() + 10 * 60 * 1000, name]
   );
 
+  if (!resend) {
+    return res.json({ message: "Verification code generated (email service not configured)", code });
+  }
+
   try {
     await resend.emails.send({
       from: "Ghana Basic School <onboarding@resend.dev>",
@@ -176,6 +183,10 @@ app.post("/api/forgot-password", async (req, res) => {
     "INSERT INTO verification_codes (email, code, type, expires) VALUES ($1, $2, $3, $4)",
     [email.toLowerCase(), code, "reset", Date.now() + 10 * 60 * 1000]
   );
+
+  if (!resend) {
+    return res.json({ message: "Reset code generated (email service not configured)", code });
+  }
 
   try {
     await resend.emails.send({
