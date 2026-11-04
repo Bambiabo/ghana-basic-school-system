@@ -120,21 +120,20 @@ app.post("/api/send-verification", async (req, res) => {
     [email.toLowerCase(), code, Date.now() + 10 * 60 * 1000, name]
   );
 
-  if (!resend) {
-    return res.json({ message: "Verification code generated (email service not configured)", code });
+  if (resend) {
+    try {
+      await resend.emails.send({
+        from: "Ghana Basic School <onboarding@resend.dev>",
+        to: email,
+        subject: "Your Verification Code",
+        html: `<p>Hello ${name || ""},</p><p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`
+      });
+    } catch (error) {
+      console.error(error);
+    }
   }
 
-  try {
-    await resend.emails.send({
-      from: "Ghana Basic School <onboarding@resend.dev>",
-      to: email,
-      subject: "Your Verification Code",
-      html: `<p>Hello ${name || ""},</p><p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`
-    });
-    res.json({ message: "Verification code sent" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to send email" });
-  }
+  res.json({ message: "Verification code generated", code });
 });
 
 app.post("/api/verify-and-register", async (req, res) => {
@@ -159,13 +158,17 @@ app.post("/api/verify-and-register", async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
+
+  const adminCount = await pool.query("SELECT COUNT(*) FROM users WHERE role = 'Admin' AND status = 'approved'");
+  const status = (role === "Admin" && adminCount.rows[0].count === "0") ? "approved" : "pending";
+
   await pool.query(
     "INSERT INTO users (name, email, password, role, status) VALUES ($1, $2, $3, $4, $5)",
-    [verification.name || "User", email.toLowerCase(), hashedPassword, role || "Teacher", "pending"]
+    [verification.name || "User", email.toLowerCase(), hashedPassword, role || "Teacher", status]
   );
   await pool.query("DELETE FROM verification_codes WHERE email = $1", [email.toLowerCase()]);
 
-  res.json({ message: "Account created. Waiting for Admin approval." });
+  res.json({ message: "Account created successfully." });
 });
 
 app.post("/api/forgot-password", async (req, res) => {
@@ -184,21 +187,20 @@ app.post("/api/forgot-password", async (req, res) => {
     [email.toLowerCase(), code, "reset", Date.now() + 10 * 60 * 1000]
   );
 
-  if (!resend) {
-    return res.json({ message: "Reset code generated (email service not configured)", code });
+  if (resend) {
+    try {
+      await resend.emails.send({
+        from: "Ghana Basic School <onboarding@resend.dev>",
+        to: email,
+        subject: "Password Reset Code",
+        html: `<p>Your password reset code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`
+      });
+    } catch (error) {
+      console.error(error);
+    }
   }
 
-  try {
-    await resend.emails.send({
-      from: "Ghana Basic School <onboarding@resend.dev>",
-      to: email,
-      subject: "Password Reset Code",
-      html: `<p>Your password reset code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`
-    });
-    res.json({ message: "Reset code sent" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to send email" });
-  }
+  res.json({ message: "Reset code generated", code });
 });
 
 app.post("/api/reset-password", async (req, res) => {
