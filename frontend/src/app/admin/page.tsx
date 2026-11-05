@@ -2,21 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-
-type User = {
-  id: string;
-  name?: string;
-  email?: string;
-  role?: string;
-  status?: string;
-};
+import { auth, db } from "@/lib/firebase";
+import { collection, getDocs, updateDoc, doc, deleteDoc } from "firebase/firestore";
+import Link from "next/link";
 
 export default function AdminPage() {
-  const [pending, setPending] = useState<User[]>([]);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -30,16 +22,12 @@ export default function AdminPage() {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   const loadUsers = async () => {
     const snapshot = await getDocs(collection(db, "users"));
-    const users: User[] = snapshot.docs.map(d => ({
-      id: d.id,
-      ...d.data()
-    } as User));
-    setPending(users.filter(u => u.status === "pending"));
-    setAllUsers(users);
+    const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    setUsers(data);
   };
 
   const approveUser = async (id: string) => {
@@ -53,65 +41,72 @@ export default function AdminPage() {
   };
 
   const deleteUser = async (id: string) => {
-    if (!confirm("Delete this user?")) return;
+    if (!confirm("Are you sure you want to delete this user?")) return;
     await deleteDoc(doc(db, "users", id));
     await loadUsers();
   };
 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
 
+  const pending = users.filter(u => u.status !== "approved");
+  const approved = users.filter(u => u.status === "approved");
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-green-800 text-white p-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold">Admin Panel</h1>
-          <p className="text-green-200 text-sm">Manage Users</p>
-        </div>
-        <button onClick={() => router.push("/dashboard")} className="text-sm">
-          ← Back to Dashboard
-        </button>
+        <h1 className="text-xl font-bold">Admin Panel</h1>
+        <Link href="/dashboard" className="text-sm">← Back to Dashboard</Link>
       </div>
 
-      <div className="p-4 max-w-4xl mx-auto">
-        <h2 className="text-lg font-semibold mb-3">Pending Approvals</h2>
-        <div className="bg-white rounded-xl shadow mb-6 overflow-hidden">
+      <div className="p-4 max-w-2xl mx-auto">
+        {/* Pending Approvals */}
+        <div className="bg-white rounded-xl shadow p-4 mb-6">
+          <h2 className="font-semibold text-lg mb-3">Pending Approvals</h2>
           {pending.length === 0 ? (
-            <p className="p-4 text-gray-500 text-sm">No pending users</p>
+            <p className="text-gray-500 text-sm">No pending users</p>
           ) : (
             pending.map(u => (
-              <div key={u.id} className="flex justify-between items-center p-4 border-b">
+              <div key={u.id} className="flex justify-between items-center border-b py-3">
                 <div>
-                  <p className="font-medium">{u.name}</p>
-                  <p className="text-sm text-gray-500">{u.email}</p>
+                  <p className="font-medium">{u.name || "No Name"}</p>
+                  <p className="text-sm text-gray-500">{u.email} • {u.status || "pending"}</p>
                 </div>
-                <button onClick={() => approveUser(u.id)} className="bg-green-600 text-white px-3 py-1 rounded text-sm">
-                  Approve
-                </button>
+                <div className="space-x-2">
+                  <button onClick={() => approveUser(u.id)} className="bg-green-600 text-white px-3 py-1 rounded text-sm">
+                    Approve
+                  </button>
+                  <button onClick={() => deleteUser(u.id)} className="bg-red-600 text-white px-3 py-1 rounded text-sm">
+                    Delete
+                  </button>
+                </div>
               </div>
             ))
           )}
         </div>
 
-        <h2 className="text-lg font-semibold mb-3">All Users</h2>
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          {allUsers.map(u => (
-            <div key={u.id} className="flex justify-between items-center p-4 border-b">
-              <div>
-                <p className="font-medium">{u.name}</p>
-                <p className="text-sm text-gray-500">{u.email} • {u.status}</p>
-              </div>
-              <div className="space-x-2">
-                {u.status === "approved" && (
+        {/* All Approved Users */}
+        <div className="bg-white rounded-xl shadow p-4">
+          <h2 className="font-semibold text-lg mb-3">Approved Users</h2>
+          {approved.length === 0 ? (
+            <p className="text-gray-500 text-sm">No approved users</p>
+          ) : (
+            approved.map(u => (
+              <div key={u.id} className="flex justify-between items-center border-b py-3">
+                <div>
+                  <p className="font-medium">{u.name || "No Name"}</p>
+                  <p className="text-sm text-gray-500">{u.email} • approved</p>
+                </div>
+                <div className="space-x-2">
                   <button onClick={() => revokeUser(u.id)} className="bg-yellow-600 text-white px-3 py-1 rounded text-sm">
                     Revoke
                   </button>
-                )}
-                <button onClick={() => deleteUser(u.id)} className="bg-red-600 text-white px-3 py-1 rounded text-sm">
-                  Delete
-                </button>
+                  <button onClick={() => deleteUser(u.id)} className="bg-red-600 text-white px-3 py-1 rounded text-sm">
+                    Delete
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
