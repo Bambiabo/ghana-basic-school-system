@@ -1,94 +1,34 @@
 "use client";
 
-import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const API_URL = "https://ghana-basic-school-system.onrender.com";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import Link from "next/link";
 
 export default function AttendancePage() {
-  const [students, setStudents] = useState<any[]>([]);
-  const [date, setDate] = useState("");
-  const [attendance, setAttendance] = useState<any>({});
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-    setDate(new Date().toISOString().split("T")[0]);
-    fetchStudents();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) router.push("/login");
+      else setLoading(false);
+    });
+    return () => unsubscribe();
   }, [router]);
 
-  const fetchStudents = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/students`);
-      const data = await res.json();
-      setStudents(data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const toggleAttendance = (studentId: number, status: string) => {
-    setAttendance({ ...attendance, [studentId]: status });
-  };
-
-  const saveAttendance = async () => {
-    try {
-      await fetch(`${API_URL}/api/attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, records: attendance }),
-      });
-      alert("Attendance saved successfully!");
-    } catch (error) {
-      alert("Failed to save attendance.");
-    }
-  };
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-green-800 text-white px-6 py-4 flex justify-between items-center">
-        <div>
-          <h1 className="font-bold text-lg">Ghana Basic School</h1>
-          <p className="text-sm text-green-200">Attendance</p>
-        </div>
-        <Link href="/dashboard" className="text-sm hover:underline">← Back to Dashboard</Link>
-      </header>
-
-      <main className="p-6 max-w-4xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Daily Attendance</h2>
-
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border rounded-lg px-4 py-2" />
-        </div>
-
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <div className="px-6 py-4 border-b flex justify-between items-center">
-            <h3 className="font-semibold">Mark Attendance</h3>
-            <button onClick={saveAttendance} className="bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg">Save Attendance</button>
-          </div>
-          <div className="divide-y">
-            {students.map((student) => (
-              <div key={student.id} className="px-6 py-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{student.name}</p>
-                  <p className="text-sm text-gray-500">{student.class}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => toggleAttendance(student.id, "Present")} className={`px-4 py-2 rounded-lg text-sm font-medium ${attendance[student.id] === "Present" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-700"}`}>Present</button>
-                  <button onClick={() => toggleAttendance(student.id, "Absent")} className={`px-4 py-2 rounded-lg text-sm font-medium ${attendance[student.id] === "Absent" ? "bg-red-600 text-white" : "bg-gray-100 text-gray-700"}`}>Absent</button>
-                </div>
-              </div>
-            ))}
-            {students.length === 0 && <p className="px-6 py-8 text-center text-gray-500">No students found. Add students first.</p>}
-          </div>
-        </div>
-      </main>
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-green-800 text-white p-4 flex justify-between items-center">
+        <h1 className="text-xl font-bold">Attendance</h1>
+        <Link href="/dashboard" className="text-sm">← Back</Link>
+      </div>
+      <div className="p-4 text-center">
+        <p className="text-gray-600">Attendance page is working.</p>
+      </div>
     </div>
   );
 }
