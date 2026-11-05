@@ -7,6 +7,32 @@ import { auth, db } from "@/lib/firebase";
 import { collection, getDocs, query, where, addDoc, updateDoc, doc } from "firebase/firestore";
 import Link from "next/link";
 
+const TEACHER_REMARKS = [
+  "Excellent performance. Keep it up.",
+  "Very good work. Continue working hard.",
+  "Good effort. Can do better with more practice.",
+  "Average performance. Needs more attention.",
+  "Weak in most subjects. Needs serious improvement.",
+  "Shows great interest in learning.",
+  "Needs to improve on class participation.",
+  "A hardworking and disciplined student.",
+  "Should pay more attention in class.",
+  "Promising student with room for improvement."
+];
+
+const HEAD_REMARKS = [
+  "Promoted to the next class.",
+  "Encouraged to work harder next term.",
+  "Good conduct and academic performance.",
+  "Needs improvement in academic work.",
+  "Has the potential to do better.",
+  "Satisfactory performance.",
+  "Must put in more effort next term.",
+  "Well done. Keep it up.",
+  "Advised to take studies more seriously.",
+  "Recommended for promotion."
+];
+
 export default function ReportsPage() {
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +43,7 @@ export default function ReportsPage() {
   const [teacherComment, setTeacherComment] = useState("");
   const [headComment, setHeadComment] = useState("");
   const [commentId, setCommentId] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -48,18 +75,16 @@ export default function ReportsPage() {
     setHeadComment("");
     setCommentId(null);
     setScores([]);
+    setPhotoUrl(student.photo || "");
 
-    // Load scores
     const scoresQuery = query(
       collection(db, "scores"),
       where("studentId", "==", student.id),
       where("term", "==", term)
     );
     const scoresSnapshot = await getDocs(scoresQuery);
-    const scoresData = scoresSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    setScores(scoresData);
+    setScores(scoresSnapshot.docs.map(d => ({ id: d.id, ...d.data() })));
 
-    // Load comments
     const commentsQuery = query(
       collection(db, "comments"),
       where("studentId", "==", student.id),
@@ -72,6 +97,23 @@ export default function ReportsPage() {
       setTeacherComment(c.data().teacherComment || "");
       setHeadComment(c.data().headComment || "");
     }
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const savePhoto = async () => {
+    if (!selectedStudent) return;
+    await updateDoc(doc(db, "students", selectedStudent.id), { photo: photoUrl });
+    setSelectedStudent({ ...selectedStudent, photo: photoUrl });
+    alert("Photo saved!");
   };
 
   const updateScoreField = (scoreId: string, field: string, value: string) => {
@@ -162,9 +204,14 @@ export default function ReportsPage() {
 
             {students.map(s => (
               <div key={s.id} className="bg-white p-4 rounded-xl shadow mb-3 flex justify-between items-center">
-                <div>
-                  <p className="font-semibold">{s.name}</p>
-                  <p className="text-sm text-gray-500">{s.class} • {s.admissionNumber}</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full overflow-hidden flex items-center justify-center">
+                    {s.photo ? <img src={s.photo} alt="" className="w-full h-full object-cover" /> : "👤"}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{s.name}</p>
+                    <p className="text-sm text-gray-500">{s.class} • {s.admissionNumber}</p>
+                  </div>
                 </div>
                 <button onClick={() => viewReport(s)} className="bg-green-700 text-white px-3 py-1 rounded text-sm">
                   View Report
@@ -180,11 +227,37 @@ export default function ReportsPage() {
               <p className="font-semibold mt-1">{term} • Academic Year 2025/2026</p>
             </div>
 
-            <div className="text-sm mb-4 space-y-1">
-              <p><strong>Name:</strong> {selectedStudent.name}</p>
-              <p><strong>Admission No:</strong> {selectedStudent.admissionNumber}</p>
-              <p><strong>Class:</strong> {selectedStudent.class}</p>
-              <p><strong>Term:</strong> {term}</p>
+            <div className="flex gap-4 mb-4">
+              <div className="w-28 h-32 border-2 border-gray-400 flex items-center justify-center bg-gray-100 overflow-hidden">
+                {photoUrl ? (
+                  <img src={photoUrl} alt="Passport" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xs text-gray-500 text-center">Passport<br/>Photo</span>
+                )}
+              </div>
+              <div className="flex-1 text-sm space-y-1">
+                <p><strong>Name:</strong> {selectedStudent.name}</p>
+                <p><strong>Admission No:</strong> {selectedStudent.admissionNumber}</p>
+                <p><strong>Class:</strong> {selectedStudent.class}</p>
+                <p><strong>Gender:</strong> {selectedStudent.gender || "—"}</p>
+                <p><strong>Term:</strong> {term}</p>
+              </div>
+            </div>
+
+            {/* Photo Upload */}
+            <div className="mb-4 print:hidden">
+              <label className="text-sm font-medium">Upload Passport Photo</label>
+              <div className="flex gap-2 mt-1 items-center">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="text-sm"
+                />
+                <button onClick={savePhoto} className="bg-blue-600 text-white px-3 py-2 rounded text-sm">
+                  Save Photo
+                </button>
+              </div>
             </div>
 
             <table className="w-full text-sm border-collapse border border-gray-400 mb-4">
@@ -237,19 +310,38 @@ export default function ReportsPage() {
 
             <div className="mb-4">
               <p className="font-semibold text-sm mb-1">Class Teacher’s Remarks:</p>
-              <textarea value={teacherComment} onChange={(e) => setTeacherComment(e.target.value)} className="w-full border rounded p-2 h-16" placeholder="Type remarks here..." />
+              <select onChange={(e) => setTeacherComment(e.target.value)} className="w-full border rounded px-3 py-2 text-sm mb-2 print:hidden">
+                <option value="">— Select a standard remark —</option>
+                {TEACHER_REMARKS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <textarea value={teacherComment} onChange={(e) => setTeacherComment(e.target.value)} className="w-full border rounded p-2 h-16 text-sm" placeholder="Or type your own remark here..." />
             </div>
 
             <div className="mb-6">
               <p className="font-semibold text-sm mb-1">Headteacher’s Remarks:</p>
-              <textarea value={headComment} onChange={(e) => setHeadComment(e.target.value)} className="w-full border rounded p-2 h-16" placeholder="Type remarks here..." />
+              <select onChange={(e) => setHeadComment(e.target.value)} className="w-full border rounded px-3 py-2 text-sm mb-2 print:hidden">
+                <option value="">— Select a standard remark —</option>
+                {HEAD_REMARKS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <textarea value={headComment} onChange={(e) => setHeadComment(e.target.value)} className="w-full border rounded p-2 h-16 text-sm" placeholder="Or type your own remark here..." />
             </div>
 
-            <div className="flex gap-3 flex-wrap">
-              <button onClick={saveScores} className="bg-blue-600 text-white px-4 py-2 rounded">Save Score Changes</button>
-              <button onClick={saveComments} className="bg-indigo-600 text-white px-4 py-2 rounded">Save Comments</button>
-              <button onClick={() => window.print()} className="bg-green-700 text-white px-4 py-2 rounded">Print Report</button>
-              <button onClick={() => setSelectedStudent(null)} className="bg-gray-600 text-white px-4 py-2 rounded">Back to List</button>
+            <div className="flex justify-between text-sm mt-8 mb-6">
+              <div className="text-center">
+                <div className="border-b border-black w-40 mb-1"></div>
+                <p>Class Teacher</p>
+              </div>
+              <div className="text-center">
+                <div className="border-b border-black w-40 mb-1"></div>
+                <p>Headteacher</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 flex-wrap print:hidden">
+              <button onClick={saveScores} className="bg-blue-600 text-white px-4 py-2 rounded text-sm">Save Score Changes</button>
+              <button onClick={saveComments} className="bg-indigo-600 text-white px-4 py-2 rounded text-sm">Save Comments</button>
+              <button onClick={() => window.print()} className="bg-green-700 text-white px-4 py-2 rounded text-sm">Print Report</button>
+              <button onClick={() => setSelectedStudent(null)} className="bg-gray-600 text-white px-4 py-2 rounded text-sm">Back to List</button>
             </div>
           </div>
         )}
