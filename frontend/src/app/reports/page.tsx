@@ -14,6 +14,8 @@ export default function ReportsPage() {
   const [term, setTerm] = useState("Term 1");
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [scores, setScores] = useState<any[]>([]);
+  const [teacherComment, setTeacherComment] = useState("");
+  const [headComment, setHeadComment] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -55,12 +57,26 @@ export default function ReportsPage() {
     return (Number(score.cat1) || 0) + (Number(score.cat2) || 0) + (Number(score.project) || 0) + (Number(score.exam) || 0);
   };
 
+  // Ghana Standard Grading Scale
   const getGrade = (total: number) => {
-    if (total >= 80) return "A";
-    if (total >= 70) return "B";
-    if (total >= 60) return "C";
-    if (total >= 50) return "D";
-    return "E";
+    if (total >= 80) return "A1";
+    if (total >= 75) return "B2";
+    if (total >= 70) return "B3";
+    if (total >= 65) return "C4";
+    if (total >= 60) return "C5";
+    if (total >= 55) return "C6";
+    if (total >= 50) return "D7";
+    if (total >= 45) return "E8";
+    return "F9";
+  };
+
+  const getRemark = (total: number) => {
+    if (total >= 80) return "Excellent";
+    if (total >= 70) return "Very Good";
+    if (total >= 60) return "Good";
+    if (total >= 50) return "Credit";
+    if (total >= 45) return "Pass";
+    return "Fail";
   };
 
   const printReport = () => {
@@ -109,14 +125,12 @@ export default function ReportsPage() {
           </>
         ) : (
           <div className="bg-white p-6 border-2 border-gray-300">
-            {/* Report Header */}
             <div className="text-center border-b-2 border-black pb-3 mb-4">
               <h1 className="text-2xl font-bold">GHANA BASIC SCHOOL</h1>
               <p className="text-sm">TERMINAL REPORT CARD</p>
               <p className="font-semibold mt-1">{term} • Academic Year 2025/2026</p>
             </div>
 
-            {/* Student Info */}
             <div className="flex gap-4 mb-4">
               <div className="w-24 h-28 border border-gray-400 flex items-center justify-center bg-gray-100">
                 {selectedStudent.photo ? (
@@ -134,7 +148,6 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* Scores Table */}
             <table className="w-full text-sm border-collapse border border-gray-400 mb-4">
               <thead>
                 <tr className="bg-gray-100">
@@ -145,12 +158,13 @@ export default function ReportsPage() {
                   <th className="border border-gray-400 p-2">Exam</th>
                   <th className="border border-gray-400 p-2">Total</th>
                   <th className="border border-gray-400 p-2">Grade</th>
+                  <th className="border border-gray-400 p-2">Remark</th>
                 </tr>
               </thead>
               <tbody>
                 {scores.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="border border-gray-400 p-3 text-center text-gray-500">
+                    <td colSpan={8} className="border border-gray-400 p-3 text-center text-gray-500">
                       No scores recorded for this term
                     </td>
                   </tr>
@@ -166,6 +180,7 @@ export default function ReportsPage() {
                         <td className="border border-gray-400 p-2 text-center">{s.exam || 0}</td>
                         <td className="border border-gray-400 p-2 text-center font-semibold">{total}</td>
                         <td className="border border-gray-400 p-2 text-center font-bold">{getGrade(total)}</td>
+                        <td className="border border-gray-400 p-2 text-center">{getRemark(total)}</td>
                       </tr>
                     );
                   })
@@ -173,32 +188,46 @@ export default function ReportsPage() {
               </tbody>
             </table>
 
-            {/* Conduct & Remarks */}
             <div className="grid grid-cols-2 gap-4 text-sm mb-4">
               <div>
                 <p><strong>Conduct:</strong> Good</p>
                 <p><strong>Attitude:</strong> Excellent</p>
                 <p><strong>Interest:</strong> Very Good</p>
-                <p><strong>Talent:</strong> —</p>
               </div>
               <div>
                 <p><strong>Attendance:</strong> 45/50</p>
                 <p><strong>Class Position:</strong> —</p>
-                <p><strong>Overall Average:</strong> —</p>
               </div>
             </div>
 
-            <div className="mb-4 text-sm">
+            <div className="mb-4 text-sm print:hidden">
+              <p className="font-semibold mb-1">Class Teacher’s Remarks:</p>
+              <textarea
+                value={teacherComment}
+                onChange={(e) => setTeacherComment(e.target.value)}
+                className="w-full border rounded p-2 h-16"
+                placeholder="Enter class teacher remarks..."
+              />
+            </div>
+            <div className="mb-4 text-sm hidden print:block">
               <p className="font-semibold">Class Teacher’s Remarks:</p>
-              <div className="border border-gray-400 h-16 mt-1"></div>
+              <p className="border border-gray-400 p-2 min-h-12">{teacherComment || " "}</p>
             </div>
 
-            <div className="mb-6 text-sm">
+            <div className="mb-6 text-sm print:hidden">
+              <p className="font-semibold mb-1">Headteacher’s Remarks:</p>
+              <textarea
+                value={headComment}
+                onChange={(e) => setHeadComment(e.target.value)}
+                className="w-full border rounded p-2 h-16"
+                placeholder="Enter headteacher remarks..."
+              />
+            </div>
+            <div className="mb-6 text-sm hidden print:block">
               <p className="font-semibold">Headteacher’s Remarks:</p>
-              <div className="border border-gray-400 h-16 mt-1"></div>
+              <p className="border border-gray-400 p-2 min-h-12">{headComment || " "}</p>
             </div>
 
-            {/* Signatures */}
             <div className="flex justify-between text-sm mt-8">
               <div className="text-center">
                 <div className="border-b border-black w-40 mb-1"></div>
