@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { collection, getDocs, query, where, addDoc, updateDoc, doc } from "firebase/firestore";
+import { collection, getDocs, query, where, addDoc, updateDoc, doc, deleteDoc } from "firebase/firestore";
 import Link from "next/link";
 
 export default function ReportsPage() {
@@ -48,17 +48,15 @@ export default function ReportsPage() {
     setHeadComment("");
     setCommentId(null);
 
-    // Load scores
     const scoresQuery = query(
       collection(db, "scores"),
       where("studentId", "==", student.id),
       where("term", "==", term)
     );
     const scoresSnapshot = await getDocs(scoresQuery);
-    const scoresData = scoresSnapshot.docs.map(d => d.data());
+    const scoresData = scoresSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     setScores(scoresData);
 
-    // Load existing comments
     const commentsQuery = query(
       collection(db, "comments"),
       where("studentId", "==", student.id),
@@ -71,6 +69,26 @@ export default function ReportsPage() {
       setTeacherComment(commentDoc.data().teacherComment || "");
       setHeadComment(commentDoc.data().headComment || "");
     }
+  };
+
+  const updateScoreField = (scoreId: string, field: string, value: string) => {
+    setScores(prev =>
+      prev.map(s => (s.id === scoreId ? { ...s, [field]: value } : s))
+    );
+  };
+
+  const saveScores = async () => {
+    for (const score of scores) {
+      if (score.id) {
+        await updateDoc(doc(db, "scores", score.id), {
+          cat1: Number(score.cat1) || 0,
+          cat2: Number(score.cat2) || 0,
+          project: Number(score.project) || 0,
+          exam: Number(score.exam) || 0
+        });
+      }
+    }
+    alert("Scores updated successfully!");
   };
 
   const saveComments = async () => {
@@ -208,15 +226,43 @@ export default function ReportsPage() {
                     </td>
                   </tr>
                 ) : (
-                  scores.map((s, i) => {
+                  scores.map((s) => {
                     const total = calculateTotal(s);
                     return (
-                      <tr key={i}>
+                      <tr key={s.id}>
                         <td className="border border-gray-400 p-2">{s.subject}</td>
-                        <td className="border border-gray-400 p-2 text-center">{s.cat1 || 0}</td>
-                        <td className="border border-gray-400 p-2 text-center">{s.cat2 || 0}</td>
-                        <td className="border border-gray-400 p-2 text-center">{s.project || 0}</td>
-                        <td className="border border-gray-400 p-2 text-center">{s.exam || 0}</td>
+                        <td className="border border-gray-400 p-2 text-center">
+                          <input
+                            type="number"
+                            value={s.cat1 || ""}
+                            onChange={(e) => updateScoreField(s.id, "cat1", e.target.value)}
+                            className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent"
+                          />
+                        </td>
+                        <td className="border border-gray-400 p-2 text-center">
+                          <input
+                            type="number"
+                            value={s.cat2 || ""}
+                            onChange={(e) => updateScoreField(s.id, "cat2", e.target.value)}
+                            className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent"
+                          />
+                        </td>
+                        <td className="border border-gray-400 p-2 text-center">
+                          <input
+                            type="number"
+                            value={s.project || ""}
+                            onChange={(e) => updateScoreField(s.id, "project", e.target.value)}
+                            className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent"
+                          />
+                        </td>
+                        <td className="border border-gray-400 p-2 text-center">
+                          <input
+                            type="number"
+                            value={s.exam || ""}
+                            onChange={(e) => updateScoreField(s.id, "exam", e.target.value)}
+                            className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent"
+                          />
+                        </td>
                         <td className="border border-gray-400 p-2 text-center font-semibold">{total}</td>
                         <td className="border border-gray-400 p-2 text-center font-bold">{getGrade(total)}</td>
                         <td className="border border-gray-400 p-2 text-center">{getRemark(total)}</td>
@@ -260,8 +306,11 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6 print:hidden">
-              <button onClick={saveComments} className="bg-blue-600 text-white px-4 py-2 rounded">
+            <div className="flex gap-3 mt-6 print:hidden flex-wrap">
+              <button onClick={saveScores} className="bg-blue-600 text-white px-4 py-2 rounded">
+                Save Score Changes
+              </button>
+              <button onClick={saveComments} className="bg-indigo-600 text-white px-4 py-2 rounded">
                 Save Comments
               </button>
               <button onClick={printReport} className="bg-green-700 text-white px-4 py-2 rounded">
