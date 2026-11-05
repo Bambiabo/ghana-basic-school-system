@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { collection, getDocs, query, where, addDoc, updateDoc, doc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, addDoc, updateDoc, doc } from "firebase/firestore";
 import Link from "next/link";
 
 export default function ReportsPage() {
@@ -17,6 +17,7 @@ export default function ReportsPage() {
   const [teacherComment, setTeacherComment] = useState("");
   const [headComment, setHeadComment] = useState("");
   const [commentId, setCommentId] = useState<string | null>(null);
+  const [attendanceSummary, setAttendanceSummary] = useState({ present: 0, absent: 0, total: 0 });
   const router = useRouter();
 
   useEffect(() => {
@@ -47,7 +48,9 @@ export default function ReportsPage() {
     setTeacherComment("");
     setHeadComment("");
     setCommentId(null);
+    setAttendanceSummary({ present: 0, absent: 0, total: 0 });
 
+    // Load scores
     const scoresQuery = query(
       collection(db, "scores"),
       where("studentId", "==", student.id),
@@ -57,6 +60,7 @@ export default function ReportsPage() {
     const scoresData = scoresSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     setScores(scoresData);
 
+    // Load comments
     const commentsQuery = query(
       collection(db, "comments"),
       where("studentId", "==", student.id),
@@ -69,6 +73,20 @@ export default function ReportsPage() {
       setTeacherComment(commentDoc.data().teacherComment || "");
       setHeadComment(commentDoc.data().headComment || "");
     }
+
+    // Load attendance
+    const attendanceQuery = query(
+      collection(db, "attendance"),
+      where("studentId", "==", student.id)
+    );
+    const attendanceSnapshot = await getDocs(attendanceQuery);
+    let present = 0;
+    let absent = 0;
+    attendanceSnapshot.docs.forEach(d => {
+      if (d.data().status === "Present") present++;
+      else if (d.data().status === "Absent") absent++;
+    });
+    setAttendanceSummary({ present, absent, total: present + absent });
   };
 
   const updateScoreField = (scoreId: string, field: string, value: string) => {
@@ -166,8 +184,8 @@ export default function ReportsPage() {
             {students.map(s => (
               <div key={s.id} className="bg-white p-4 rounded-xl shadow mb-3 flex justify-between items-center print:hidden">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl">
-                    {s.photo ? <img src={s.photo} alt="" className="w-12 h-12 rounded-full object-cover" /> : "👤"}
+                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl overflow-hidden">
+                    {s.photo ? <img src={s.photo} alt="" className="w-12 h-12 object-cover" /> : "👤"}
                   </div>
                   <div>
                     <p className="font-semibold">{s.name}</p>
@@ -189,7 +207,7 @@ export default function ReportsPage() {
             </div>
 
             <div className="flex gap-4 mb-4">
-              <div className="w-24 h-28 border border-gray-400 flex items-center justify-center bg-gray-100">
+              <div className="w-24 h-28 border border-gray-400 flex items-center justify-center bg-gray-100 overflow-hidden">
                 {selectedStudent.photo ? (
                   <img src={selectedStudent.photo} alt="Passport" className="w-full h-full object-cover" />
                 ) : (
@@ -232,36 +250,16 @@ export default function ReportsPage() {
                       <tr key={s.id}>
                         <td className="border border-gray-400 p-2">{s.subject}</td>
                         <td className="border border-gray-400 p-2 text-center">
-                          <input
-                            type="number"
-                            value={s.cat1 || ""}
-                            onChange={(e) => updateScoreField(s.id, "cat1", e.target.value)}
-                            className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent"
-                          />
+                          <input type="number" value={s.cat1 || ""} onChange={(e) => updateScoreField(s.id, "cat1", e.target.value)} className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent" />
                         </td>
                         <td className="border border-gray-400 p-2 text-center">
-                          <input
-                            type="number"
-                            value={s.cat2 || ""}
-                            onChange={(e) => updateScoreField(s.id, "cat2", e.target.value)}
-                            className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent"
-                          />
+                          <input type="number" value={s.cat2 || ""} onChange={(e) => updateScoreField(s.id, "cat2", e.target.value)} className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent" />
                         </td>
                         <td className="border border-gray-400 p-2 text-center">
-                          <input
-                            type="number"
-                            value={s.project || ""}
-                            onChange={(e) => updateScoreField(s.id, "project", e.target.value)}
-                            className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent"
-                          />
+                          <input type="number" value={s.project || ""} onChange={(e) => updateScoreField(s.id, "project", e.target.value)} className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent" />
                         </td>
                         <td className="border border-gray-400 p-2 text-center">
-                          <input
-                            type="number"
-                            value={s.exam || ""}
-                            onChange={(e) => updateScoreField(s.id, "exam", e.target.value)}
-                            className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent"
-                          />
+                          <input type="number" value={s.exam || ""} onChange={(e) => updateScoreField(s.id, "exam", e.target.value)} className="w-14 border rounded px-1 text-center print:border-0 print:bg-transparent" />
                         </td>
                         <td className="border border-gray-400 p-2 text-center font-semibold">{total}</td>
                         <td className="border border-gray-400 p-2 text-center font-bold">{getGrade(total)}</td>
@@ -273,25 +271,25 @@ export default function ReportsPage() {
               </tbody>
             </table>
 
+            {/* Attendance Summary */}
+            <div className="mb-4 text-sm border border-gray-400 p-3">
+              <p className="font-semibold mb-2">Attendance Summary</p>
+              <div className="grid grid-cols-3 gap-4">
+                <p><strong>Days Present:</strong> {attendanceSummary.present}</p>
+                <p><strong>Days Absent:</strong> {attendanceSummary.absent}</p>
+                <p><strong>Total Days:</strong> {attendanceSummary.total}</p>
+              </div>
+            </div>
+
             <div className="mb-4 text-sm">
               <p className="font-semibold mb-1">Class Teacher’s Remarks:</p>
-              <textarea
-                value={teacherComment}
-                onChange={(e) => setTeacherComment(e.target.value)}
-                className="w-full border rounded p-2 h-16 print:hidden"
-                placeholder="Enter class teacher remarks..."
-              />
+              <textarea value={teacherComment} onChange={(e) => setTeacherComment(e.target.value)} className="w-full border rounded p-2 h-16 print:hidden" placeholder="Enter class teacher remarks..." />
               <p className="border border-gray-400 p-2 min-h-12 hidden print:block">{teacherComment || " "}</p>
             </div>
 
             <div className="mb-6 text-sm">
               <p className="font-semibold mb-1">Headteacher’s Remarks:</p>
-              <textarea
-                value={headComment}
-                onChange={(e) => setHeadComment(e.target.value)}
-                className="w-full border rounded p-2 h-16 print:hidden"
-                placeholder="Enter headteacher remarks..."
-              />
+              <textarea value={headComment} onChange={(e) => setHeadComment(e.target.value)} className="w-full border rounded p-2 h-16 print:hidden" placeholder="Enter headteacher remarks..." />
               <p className="border border-gray-400 p-2 min-h-12 hidden print:block">{headComment || " "}</p>
             </div>
 
@@ -307,18 +305,10 @@ export default function ReportsPage() {
             </div>
 
             <div className="flex gap-3 mt-6 print:hidden flex-wrap">
-              <button onClick={saveScores} className="bg-blue-600 text-white px-4 py-2 rounded">
-                Save Score Changes
-              </button>
-              <button onClick={saveComments} className="bg-indigo-600 text-white px-4 py-2 rounded">
-                Save Comments
-              </button>
-              <button onClick={printReport} className="bg-green-700 text-white px-4 py-2 rounded">
-                Print Report
-              </button>
-              <button onClick={() => setSelectedStudent(null)} className="bg-gray-600 text-white px-4 py-2 rounded">
-                Back to List
-              </button>
+              <button onClick={saveScores} className="bg-blue-600 text-white px-4 py-2 rounded">Save Score Changes</button>
+              <button onClick={saveComments} className="bg-indigo-600 text-white px-4 py-2 rounded">Save Comments</button>
+              <button onClick={printReport} className="bg-green-700 text-white px-4 py-2 rounded">Print Report</button>
+              <button onClick={() => setSelectedStudent(null)} className="bg-gray-600 text-white px-4 py-2 rounded">Back to List</button>
             </div>
           </div>
         )}
