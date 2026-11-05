@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, addDoc, updateDoc, doc } from "firebase/firestore";
 import Link from "next/link";
 
 export default function ReportsPage() {
@@ -16,6 +16,7 @@ export default function ReportsPage() {
   const [scores, setScores] = useState<any[]>([]);
   const [teacherComment, setTeacherComment] = useState("");
   const [headComment, setHeadComment] = useState("");
+  const [commentId, setCommentId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -43,21 +44,59 @@ export default function ReportsPage() {
 
   const viewReport = async (student: any) => {
     setSelectedStudent(student);
-    const q = query(
+    setTeacherComment("");
+    setHeadComment("");
+    setCommentId(null);
+
+    // Load scores
+    const scoresQuery = query(
       collection(db, "scores"),
       where("studentId", "==", student.id),
       where("term", "==", term)
     );
-    const snapshot = await getDocs(q);
-    const data = snapshot.docs.map(d => d.data());
-    setScores(data);
+    const scoresSnapshot = await getDocs(scoresQuery);
+    const scoresData = scoresSnapshot.docs.map(d => d.data());
+    setScores(scoresData);
+
+    // Load existing comments
+    const commentsQuery = query(
+      collection(db, "comments"),
+      where("studentId", "==", student.id),
+      where("term", "==", term)
+    );
+    const commentsSnapshot = await getDocs(commentsQuery);
+    if (!commentsSnapshot.empty) {
+      const commentDoc = commentsSnapshot.docs[0];
+      setCommentId(commentDoc.id);
+      setTeacherComment(commentDoc.data().teacherComment || "");
+      setHeadComment(commentDoc.data().headComment || "");
+    }
+  };
+
+  const saveComments = async () => {
+    if (!selectedStudent) return;
+    const commentData = {
+      studentId: selectedStudent.id,
+      studentName: selectedStudent.name,
+      term,
+      teacherComment,
+      headComment,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (commentId) {
+      await updateDoc(doc(db, "comments", commentId), commentData);
+    } else {
+      const newDoc = await addDoc(collection(db, "comments"), commentData);
+      setCommentId(newDoc.id);
+    }
+    alert("Comments saved successfully!");
   };
 
   const calculateTotal = (score: any) => {
     return (Number(score.cat1) || 0) + (Number(score.cat2) || 0) + (Number(score.project) || 0) + (Number(score.exam) || 0);
   };
 
-  // Ghana Standard Grading Scale
   const getGrade = (total: number) => {
     if (total >= 80) return "A1";
     if (total >= 75) return "B2";
@@ -188,44 +227,26 @@ export default function ReportsPage() {
               </tbody>
             </table>
 
-            <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-              <div>
-                <p><strong>Conduct:</strong> Good</p>
-                <p><strong>Attitude:</strong> Excellent</p>
-                <p><strong>Interest:</strong> Very Good</p>
-              </div>
-              <div>
-                <p><strong>Attendance:</strong> 45/50</p>
-                <p><strong>Class Position:</strong> —</p>
-              </div>
-            </div>
-
-            <div className="mb-4 text-sm print:hidden">
+            <div className="mb-4 text-sm">
               <p className="font-semibold mb-1">Class Teacher’s Remarks:</p>
               <textarea
                 value={teacherComment}
                 onChange={(e) => setTeacherComment(e.target.value)}
-                className="w-full border rounded p-2 h-16"
+                className="w-full border rounded p-2 h-16 print:hidden"
                 placeholder="Enter class teacher remarks..."
               />
-            </div>
-            <div className="mb-4 text-sm hidden print:block">
-              <p className="font-semibold">Class Teacher’s Remarks:</p>
-              <p className="border border-gray-400 p-2 min-h-12">{teacherComment || " "}</p>
+              <p className="border border-gray-400 p-2 min-h-12 hidden print:block">{teacherComment || " "}</p>
             </div>
 
-            <div className="mb-6 text-sm print:hidden">
+            <div className="mb-6 text-sm">
               <p className="font-semibold mb-1">Headteacher’s Remarks:</p>
               <textarea
                 value={headComment}
                 onChange={(e) => setHeadComment(e.target.value)}
-                className="w-full border rounded p-2 h-16"
+                className="w-full border rounded p-2 h-16 print:hidden"
                 placeholder="Enter headteacher remarks..."
               />
-            </div>
-            <div className="mb-6 text-sm hidden print:block">
-              <p className="font-semibold">Headteacher’s Remarks:</p>
-              <p className="border border-gray-400 p-2 min-h-12">{headComment || " "}</p>
+              <p className="border border-gray-400 p-2 min-h-12 hidden print:block">{headComment || " "}</p>
             </div>
 
             <div className="flex justify-between text-sm mt-8">
@@ -240,6 +261,9 @@ export default function ReportsPage() {
             </div>
 
             <div className="flex gap-3 mt-6 print:hidden">
+              <button onClick={saveComments} className="bg-blue-600 text-white px-4 py-2 rounded">
+                Save Comments
+              </button>
               <button onClick={printReport} className="bg-green-700 text-white px-4 py-2 rounded">
                 Print Report
               </button>
