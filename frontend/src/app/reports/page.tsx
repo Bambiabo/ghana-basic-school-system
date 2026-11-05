@@ -44,6 +44,7 @@ export default function ReportsPage() {
   const [headComment, setHeadComment] = useState("");
   const [commentId, setCommentId] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState("");
+  const [savingPhoto, setSavingPhoto] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -102,18 +103,53 @@ export default function ReportsPage() {
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setPhotoUrl(reader.result as string);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxSize = 300;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL("image/jpeg", 0.7);
+          setPhotoUrl(compressed);
+        }
+      };
+      img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
   };
 
   const savePhoto = async () => {
-    if (!selectedStudent) return;
-    await updateDoc(doc(db, "students", selectedStudent.id), { photo: photoUrl });
-    setSelectedStudent({ ...selectedStudent, photo: photoUrl });
-    alert("Photo saved!");
+    if (!selectedStudent || !photoUrl) return;
+    setSavingPhoto(true);
+    try {
+      await updateDoc(doc(db, "students", selectedStudent.id), { photo: photoUrl });
+      setSelectedStudent({ ...selectedStudent, photo: photoUrl });
+      alert("Photo saved successfully!");
+    } catch (error) {
+      alert("Failed to save photo. The image may still be too large.");
+    }
+    setSavingPhoto(false);
   };
 
   const updateScoreField = (scoreId: string, field: string, value: string) => {
@@ -244,20 +280,15 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* Photo Upload */}
             <div className="mb-4 print:hidden">
               <label className="text-sm font-medium">Upload Passport Photo</label>
               <div className="flex gap-2 mt-1 items-center">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="text-sm"
-                />
-                <button onClick={savePhoto} className="bg-blue-600 text-white px-3 py-2 rounded text-sm">
-                  Save Photo
+                <input type="file" accept="image/*" onChange={handlePhotoUpload} className="text-sm" />
+                <button onClick={savePhoto} disabled={savingPhoto || !photoUrl} className="bg-blue-600 text-white px-3 py-2 rounded text-sm disabled:opacity-50">
+                  {savingPhoto ? "Saving..." : "Save Photo"}
                 </button>
               </div>
+              <p className="text-xs text-gray-500 mt-1">Photo will be reduced in size automatically</p>
             </div>
 
             <table className="w-full text-sm border-collapse border border-gray-400 mb-4">
