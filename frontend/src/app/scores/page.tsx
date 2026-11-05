@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, updateDoc, doc } from "firebase/firestore";
 import Link from "next/link";
 
 const SUBJECTS = [
@@ -28,7 +28,7 @@ export default function ScoresPage() {
   const [selectedClass, setSelectedClass] = useState("Basic 1");
   const [subject, setSubject] = useState("English Language");
   const [term, setTerm] = useState("Term 1");
-  const [scores, setScores] = useState<{ [key: string]: { cat1: string; cat2: string; project: string; exam: string } }>({});
+  const [scores, setScores] = useState<{ [key: string]: { cat1: string; cat2: string; project: string; exam: string; id?: string } }>({});
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
@@ -49,12 +49,34 @@ export default function ScoresPage() {
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     setStudents(data);
-    setScores({});
+
+    // Load existing scores for this subject and term
+    const existing: { [key: string]: any } = {};
+    for (const student of data) {
+      const scoreQuery = query(
+        collection(db, "scores"),
+        where("studentId", "==", student.id),
+        where("subject", "==", subject),
+        where("term", "==", term)
+      );
+      const scoreSnapshot = await getDocs(scoreQuery);
+      if (!scoreSnapshot.empty) {
+        const docData = scoreSnapshot.docs[0];
+        existing[student.id] = {
+          id: docData.id,
+          cat1: docData.data().cat1 || "",
+          cat2: docData.data().cat2 || "",
+          project: docData.data().project || "",
+          exam: docData.data().exam || ""
+        };
+      }
+    }
+    setScores(existing);
   };
 
   useEffect(() => {
     if (!loading) loadStudents();
-  }, [selectedClass]);
+  }, [selectedClass, subject, term]);
 
   const handleScoreChange = (studentId: string, field: string, value: string) => {
     setScores(prev => ({
@@ -70,7 +92,7 @@ export default function ScoresPage() {
         const score = scores[student.id] || {};
         if (!score.cat1 && !score.cat2 && !score.project && !score.exam) continue;
 
-        await addDoc(collection(db, "scores"), {
+        const scoreData = {
           studentId: student.id,
           studentName: student.name,
           class: selectedClass,
@@ -80,11 +102,19 @@ export default function ScoresPage() {
           cat2: Number(score.cat2) || 0,
           project: Number(score.project) || 0,
           exam: Number(score.exam) || 0,
-          createdAt: new Date().toISOString()
-        });
+          updatedAt: new Date().toISOString()
+        };
+
+        if (score.id) {
+          // Update existing score
+          await updateDoc(doc(db, "scores", score.id), scoreData);
+        } else {
+          // Create new score
+          await addDoc(collection(db, "scores"), scoreData);
+        }
       }
       alert("Scores saved successfully!");
-      setScores({});
+      await loadStudents();
     } catch (error) {
       alert("Error saving scores. Please try again.");
     }
@@ -101,7 +131,6 @@ export default function ScoresPage() {
       </div>
 
       <div className="p-4 max-w-5xl mx-auto">
-        {/* Filters */}
         <div className="bg-white p-4 rounded-xl shadow mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="text-sm text-gray-600">Class</label>
@@ -125,7 +154,6 @@ export default function ScoresPage() {
           </div>
         </div>
 
-        {/* Scores Table */}
         <div className="bg-white rounded-xl shadow overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-100">
