@@ -147,7 +147,7 @@ export default function ReportsPage() {
       setSelectedStudent({ ...selectedStudent, photo: photoUrl });
       alert("Photo saved successfully!");
     } catch (error) {
-      alert("Failed to save photo. The image may still be too large.");
+      alert("Failed to save photo.");
     }
     setSavingPhoto(false);
   };
@@ -218,7 +218,7 @@ export default function ReportsPage() {
   if (loading) return <div className="p-8 text-center">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       <div className="bg-green-800 text-white p-4 flex justify-between items-center print:hidden">
         <h1 className="text-xl font-bold">Terminal Reports</h1>
         <Link href="/dashboard" className="text-sm">← Back</Link>
@@ -256,58 +256,67 @@ export default function ReportsPage() {
             ))}
           </>
         ) : (
-          <div className="bg-white p-6 border-2 border-gray-300">
-            <div className="text-center border-b-2 border-black pb-3 mb-4">
-              <h1 className="text-2xl font-bold">GHANA BASIC SCHOOL</h1>
-              <p className="text-sm">TERMINAL REPORT CARD</p>
-              <p className="font-semibold mt-1">{term} • Academic Year 2025/2026</p>
+          <div className="bg-white shadow-lg border border-gray-300 p-8 print:shadow-none print:border-0">
+            {/* Header */}
+            <div className="text-center border-b-4 border-green-800 pb-4 mb-6">
+              <div className="flex justify-center items-center gap-3 mb-2">
+                <div className="w-12 h-12 bg-green-800 rounded-full flex items-center justify-center text-white text-2xl">🏫</div>
+                <div>
+                  <h1 className="text-2xl font-bold text-green-900 tracking-wide">GHANA BASIC SCHOOL</h1>
+                  <p className="text-sm text-gray-600">Excellence in Education</p>
+                </div>
+              </div>
+              <h2 className="text-lg font-semibold mt-3 text-gray-800">TERMINAL REPORT CARD</h2>
+              <p className="text-sm font-medium text-green-800 mt-1">{term} • Academic Year 2025/2026</p>
             </div>
 
-            <div className="flex gap-4 mb-4">
-              <div className="w-28 h-32 border-2 border-gray-400 flex items-center justify-center bg-gray-100 overflow-hidden">
+            {/* Student Info */}
+            <div className="flex gap-6 mb-6">
+              <div className="w-32 h-40 border-2 border-green-800 flex items-center justify-center bg-gray-50 overflow-hidden">
                 {photoUrl ? (
                   <img src={photoUrl} alt="Passport" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-xs text-gray-500 text-center">Passport<br/>Photo</span>
+                  <span className="text-xs text-gray-400 text-center">Passport<br/>Photograph</span>
                 )}
               </div>
-              <div className="flex-1 text-sm space-y-1">
-                <p><strong>Name:</strong> {selectedStudent.name}</p>
-                <p><strong>Admission No:</strong> {selectedStudent.admissionNumber}</p>
-                <p><strong>Class:</strong> {selectedStudent.class}</p>
-                <p><strong>Gender:</strong> {selectedStudent.gender || "—"}</p>
-                <p><strong>Term:</strong> {term}</p>
+              <div className="flex-1 grid grid-cols-2 gap-y-2 text-sm">
+                <p><span className="font-semibold text-gray-600">Name:</span> {selectedStudent.name}</p>
+                <p><span className="font-semibold text-gray-600">Admission No:</span> {selectedStudent.admissionNumber}</p>
+                <p><span className="font-semibold text-gray-600">Class:</span> {selectedStudent.class}</p>
+                <p><span className="font-semibold text-gray-600">Gender:</span> {selectedStudent.gender || "—"}</p>
+                <p><span className="font-semibold text-gray-600">Term:</span> {term}</p>
               </div>
             </div>
 
-            <div className="mb-4 print:hidden">
-              <label className="text-sm font-medium">Upload Passport Photo</label>
+            {/* Photo Upload */}
+            <div className="mb-5 print:hidden bg-gray-50 p-3 rounded">
+              <label className="text-sm font-medium text-gray-700">Upload Passport Photo</label>
               <div className="flex gap-2 mt-1 items-center">
                 <input type="file" accept="image/*" onChange={handlePhotoUpload} className="text-sm" />
-                <button onClick={savePhoto} disabled={savingPhoto || !photoUrl} className="bg-blue-600 text-white px-3 py-2 rounded text-sm disabled:opacity-50">
+                <button onClick={savePhoto} disabled={savingPhoto || !photoUrl} className="bg-green-700 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50">
                   {savingPhoto ? "Saving..." : "Save Photo"}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Photo will be reduced in size automatically</p>
             </div>
 
-            <table className="w-full text-sm border-collapse border border-gray-400 mb-4">
+            {/* Scores Table */}
+            <table className="w-full text-sm border-collapse mb-6">
               <thead>
-                <tr className="bg-gray-100">
-                  <th className="border p-2 text-left">Subject</th>
-                  <th className="border p-2">CAT 1</th>
-                  <th className="border p-2">CAT 2</th>
-                  <th className="border p-2">Project</th>
-                  <th className="border p-2">Exam</th>
-                  <th className="border p-2">Total</th>
-                  <th className="border p-2">Grade</th>
-                  <th className="border p-2">Remark</th>
+                <tr className="bg-green-800 text-white">
+                  <th className="border border-green-900 p-2 text-left">Subject</th>
+                  <th className="border border-green-900 p-2">CAT 1</th>
+                  <th className="border border-green-900 p-2">CAT 2</th>
+                  <th className="border border-green-900 p-2">Project</th>
+                  <th className="border border-green-900 p-2">Exam</th>
+                  <th className="border border-green-900 p-2">Total</th>
+                  <th className="border border-green-900 p-2">Grade</th>
+                  <th className="border border-green-900 p-2">Remark</th>
                 </tr>
               </thead>
               <tbody>
                 {scores.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="border p-3 text-center text-gray-500">
+                    <td colSpan={8} className="border border-gray-300 p-4 text-center text-gray-500">
                       No scores recorded for this term
                     </td>
                   </tr>
@@ -315,23 +324,23 @@ export default function ReportsPage() {
                   scores.map(s => {
                     const total = calculateTotal(s);
                     return (
-                      <tr key={s.id}>
-                        <td className="border p-2">{s.subject}</td>
-                        <td className="border p-2 text-center">
-                          <input type="number" value={s.cat1 || ""} onChange={(e) => updateScoreField(s.id, "cat1", e.target.value)} className="w-14 border rounded px-1 text-center" />
+                      <tr key={s.id} className="even:bg-gray-50">
+                        <td className="border border-gray-300 p-2">{s.subject}</td>
+                        <td className="border border-gray-300 p-2 text-center">
+                          <input type="number" value={s.cat1 || ""} onChange={(e) => updateScoreField(s.id, "cat1", e.target.value)} className="w-12 border rounded px-1 text-center print:border-0 print:bg-transparent" />
                         </td>
-                        <td className="border p-2 text-center">
-                          <input type="number" value={s.cat2 || ""} onChange={(e) => updateScoreField(s.id, "cat2", e.target.value)} className="w-14 border rounded px-1 text-center" />
+                        <td className="border border-gray-300 p-2 text-center">
+                          <input type="number" value={s.cat2 || ""} onChange={(e) => updateScoreField(s.id, "cat2", e.target.value)} className="w-12 border rounded px-1 text-center print:border-0 print:bg-transparent" />
                         </td>
-                        <td className="border p-2 text-center">
-                          <input type="number" value={s.project || ""} onChange={(e) => updateScoreField(s.id, "project", e.target.value)} className="w-14 border rounded px-1 text-center" />
+                        <td className="border border-gray-300 p-2 text-center">
+                          <input type="number" value={s.project || ""} onChange={(e) => updateScoreField(s.id, "project", e.target.value)} className="w-12 border rounded px-1 text-center print:border-0 print:bg-transparent" />
                         </td>
-                        <td className="border p-2 text-center">
-                          <input type="number" value={s.exam || ""} onChange={(e) => updateScoreField(s.id, "exam", e.target.value)} className="w-14 border rounded px-1 text-center" />
+                        <td className="border border-gray-300 p-2 text-center">
+                          <input type="number" value={s.exam || ""} onChange={(e) => updateScoreField(s.id, "exam", e.target.value)} className="w-12 border rounded px-1 text-center print:border-0 print:bg-transparent" />
                         </td>
-                        <td className="border p-2 text-center font-semibold">{total}</td>
-                        <td className="border p-2 text-center font-bold">{getGrade(total)}</td>
-                        <td className="border p-2 text-center">{getRemark(total)}</td>
+                        <td className="border border-gray-300 p-2 text-center font-semibold">{total}</td>
+                        <td className="border border-gray-300 p-2 text-center font-bold text-green-800">{getGrade(total)}</td>
+                        <td className="border border-gray-300 p-2 text-center text-xs">{getRemark(total)}</td>
                       </tr>
                     );
                   })
@@ -339,36 +348,44 @@ export default function ReportsPage() {
               </tbody>
             </table>
 
+            {/* Remarks */}
             <div className="mb-4">
-              <p className="font-semibold text-sm mb-1">Class Teacher’s Remarks:</p>
+              <p className="font-semibold text-sm text-green-900 mb-1">Class Teacher’s Remarks</p>
               <select onChange={(e) => setTeacherComment(e.target.value)} className="w-full border rounded px-3 py-2 text-sm mb-2 print:hidden">
                 <option value="">— Select a standard remark —</option>
                 {TEACHER_REMARKS.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-              <textarea value={teacherComment} onChange={(e) => setTeacherComment(e.target.value)} className="w-full border rounded p-2 h-16 text-sm" placeholder="Or type your own remark here..." />
+              <div className="border border-gray-300 rounded p-2 min-h-14 text-sm bg-gray-50">
+                <textarea value={teacherComment} onChange={(e) => setTeacherComment(e.target.value)} className="w-full bg-transparent outline-none resize-none h-12 print:hidden" placeholder="Type or select a remark..." />
+                <p className="hidden print:block">{teacherComment || " "}</p>
+              </div>
             </div>
 
-            <div className="mb-6">
-              <p className="font-semibold text-sm mb-1">Headteacher’s Remarks:</p>
+            <div className="mb-8">
+              <p className="font-semibold text-sm text-green-900 mb-1">Headteacher’s Remarks</p>
               <select onChange={(e) => setHeadComment(e.target.value)} className="w-full border rounded px-3 py-2 text-sm mb-2 print:hidden">
                 <option value="">— Select a standard remark —</option>
                 {HEAD_REMARKS.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-              <textarea value={headComment} onChange={(e) => setHeadComment(e.target.value)} className="w-full border rounded p-2 h-16 text-sm" placeholder="Or type your own remark here..." />
-            </div>
-
-            <div className="flex justify-between text-sm mt-8 mb-6">
-              <div className="text-center">
-                <div className="border-b border-black w-40 mb-1"></div>
-                <p>Class Teacher</p>
-              </div>
-              <div className="text-center">
-                <div className="border-b border-black w-40 mb-1"></div>
-                <p>Headteacher</p>
+              <div className="border border-gray-300 rounded p-2 min-h-14 text-sm bg-gray-50">
+                <textarea value={headComment} onChange={(e) => setHeadComment(e.target.value)} className="w-full bg-transparent outline-none resize-none h-12 print:hidden" placeholder="Type or select a remark..." />
+                <p className="hidden print:block">{headComment || " "}</p>
               </div>
             </div>
 
-            <div className="flex gap-3 flex-wrap print:hidden">
+            {/* Signatures */}
+            <div className="flex justify-between text-sm mt-10">
+              <div className="text-center">
+                <div className="border-b-2 border-gray-800 w-48 mb-1"></div>
+                <p className="font-medium">Class Teacher</p>
+              </div>
+              <div className="text-center">
+                <div className="border-b-2 border-gray-800 w-48 mb-1"></div>
+                <p className="font-medium">Headteacher</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 flex-wrap mt-8 print:hidden">
               <button onClick={saveScores} className="bg-blue-600 text-white px-4 py-2 rounded text-sm">Save Score Changes</button>
               <button onClick={saveComments} className="bg-indigo-600 text-white px-4 py-2 rounded text-sm">Save Comments</button>
               <button onClick={() => window.print()} className="bg-green-700 text-white px-4 py-2 rounded text-sm">Print Report</button>
